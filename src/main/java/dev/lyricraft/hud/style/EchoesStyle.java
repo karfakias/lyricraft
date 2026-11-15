@@ -341,12 +341,16 @@ public final class EchoesStyle implements LyricStyle {
 
 		// opening: the panel springs open from 85% size; old panels shrink a touch
 		float open = Draw.easeOutBack(Math.clamp(age / 0.35f, 0f, 1f));
-		float size = (0.85f + 0.15f * open) * (1f - 0.08f * retired) * (1f + 0.025f * beat);
+		// new lines shoot out from the crosshair to their spot
+		float fly = Draw.easeOutCubic(Math.clamp(age / 0.32f, 0f, 1f));
+		float px = f.width() / 2f + (pt.x() - f.width() / 2f) * fly;
+		float py = f.height() / 2f + (pt.y() - f.height() / 2f) * fly;
+		float size = (0.85f + 0.15f * open) * (0.45f + 0.55f * fly) * (1f - 0.08f * retired) * (1f + 0.025f * beat);
 		float lh = f.font().lineHeight * scale;
 		float panelW = (textW + PAD * 2) * scale * size;
 		float panelH = lh * 2.3f * size;
 		float bob = (float) Math.sin(f.time() * 1.1f + pn.seed * 6.28f) * 1.4f * scale;
-		float x0 = pt.x() - panelW / 2f, y0 = pt.y() - panelH / 2f + bob;
+		float x0 = px - panelW / 2f, y0 = py - panelH / 2f + bob;
 		int ix0 = Math.round(x0), iy0 = Math.round(y0), ix1 = Math.round(x0 + panelW), iy1 = Math.round(y0 + panelH);
 
 		// echoes that drift behind the Now Playing card / hotbar get see-through instead of covering them
@@ -359,6 +363,15 @@ public final class EchoesStyle implements LyricStyle {
 		int acc = current ? f.accent() : Draw.mix(f.accent(), f.colorB(), 0.5f);
 		float glow = current ? 0.7f + beat * 1.3f + f.pulse() * 0.4f : 0.25f;
 		GlassPanel.draw(g, ix0, iy0, ix1, iy1, f.colorA(), acc, vis * Math.min(1f, open + 0.3f), glow, pn.seed, f.time());
+
+		// the light streak it leaves on the way out
+		if (fly < 1f) {
+			float a = (1f - fly) * f.vis();
+			float tailU = Math.max(0f, fly - 0.35f);
+			float sx = f.width() / 2f + (pt.x() - f.width() / 2f) * tailU, sy = f.height() / 2f + (pt.y() - f.height() / 2f) * tailU;
+			Draw.line(g, sx, sy, px, py, 4f, Draw.argb(acc, 0.12f * a));
+			Draw.line(g, sx, sy, px, py, 1.5f, Draw.argb(Draw.mix(acc, 0xFFFFFF, 0.6f), 0.55f * a));
+		}
 
 		// a soft flash when it opens
 		if (age < 0.45f) {
@@ -373,7 +386,7 @@ public final class EchoesStyle implements LyricStyle {
 
 		float s = scale * size;
 		float tw = f.font().width(text) * s;
-		float tx = pt.x() - tw / 2f, ty = y0 + (panelH - lh * size) / 2f + s * 1.5f;
+		float tx = px - tw / 2f, ty = y0 + (panelH - lh * size) / 2f + s * 1.5f;
 
 		if (!current) {
 			Draw.text(g, f.font(), text, tx, ty, s, Draw.argb(Draw.mix(0xEEF2FF, acc, 0.3f), 0.95f * vis), false);
@@ -381,7 +394,7 @@ public final class EchoesStyle implements LyricStyle {
 		}
 		boolean waiting = f.active() < 0 && line.startMs() - f.posMs() > 1800;
 		if (waiting) {
-			BreakDots.draw(f, pt.x(), ty, s, Draw.Align.CENTER, vis);
+			BreakDots.draw(f, px, ty, s, Draw.Align.CENTER, vis);
 			return;
 		}
 
