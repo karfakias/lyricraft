@@ -91,7 +91,18 @@ public final class OnlineClient {
 
 	// ------------------------------------------------------------------ lifecycle (client thread)
 
+	private volatile boolean demo;
+
+	/** Pretend this player shares this line (screenshots/tests only). */
+	public void showDemo(UUID id, String song, String artist, String line, long durMs, long elapsedMs) {
+		demo = true;
+		myId = id;
+		status = Status.ONLINE;
+		remotes.put(id, new Remote(id, song, artist, line, durMs, elapsedMs, System.nanoTime()));
+	}
+
 	public void tick(Minecraft mc) {
+		if (demo) return;
 		Config cfg = mod.config;
 		boolean wanted = cfg.online && mc.level != null && mc.player != null;
 		String url = serverUrl(cfg);

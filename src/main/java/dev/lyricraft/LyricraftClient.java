@@ -94,7 +94,17 @@ public final class LyricraftClient implements ClientModInitializer {
 		if (now != null) loadLyrics(now);
 	}
 
+	/** Show a made-up song instead of what's really playing (for screenshots and tests). */
+	public void showDemo(MediaSnapshot track, Lyrics demoLyrics) {
+		tracker.setDemo(track);
+		if (track != null) {
+			lyricsFor = track.trackKey();
+			lyrics = demoLyrics;
+		}
+	}
+
 	private void loadLyrics(MediaSnapshot track) {
+		if (tracker.demoActive()) return;
 		String key = track.trackKey();
 		lyricsFor = key;
 		lyrics = null;

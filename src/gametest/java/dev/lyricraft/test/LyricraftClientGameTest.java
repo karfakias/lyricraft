@@ -25,6 +25,7 @@ public final class LyricraftClientGameTest implements FabricClientGameTest {
 
 	@Override
 	public void runTest(ClientGameTestContext ctx) {
+		if ("1".equals(System.getenv("LYRICRAFT_GALLERY"))) return; // gallery run only
 		try (TestSingleplayerContext world = ctx.worldBuilder().create()) {
 			world.getConnection().waitForChunksRender();
 			Config cfg = LyricraftClient.get().config;
@@ -312,7 +313,7 @@ public final class LyricraftClientGameTest implements FabricClientGameTest {
 	}
 
 	/** Clicks one of our (custom) widgets by its label, with the real mouse. */
-	private static void clickWidget(ClientGameTestContext ctx, String label) {
+	static void clickWidget(ClientGameTestContext ctx, String label) {
 		float[] at = widgetCenter(ctx, label);
 		check(at != null, "widget '" + label + "' exists");
 		moveTo(ctx, at[0], at[1]);

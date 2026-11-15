@@ -35,7 +35,16 @@ public final class CoverArt {
 	private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
 
 	/** Cover for this track, or {@code null} if there isn't one (yet). */
+	private static volatile Cover demo;
+
+	/** A made-up cover for the demo song (screenshots/tests); null image clears it. */
+	public static void showDemo(String trackKey, BufferedImage image) {
+		demo = image == null ? null : shrink(trackKey, image);
+	}
+
 	public static Cover get(String trackKey) {
+		Cover d = demo;
+		if (d != null && d.trackKey.equals(trackKey)) return d;
 		Cover c = current;
 		return c != null && c.trackKey.equals(trackKey) ? c : null;
 	}

@@ -158,8 +158,25 @@ public final class PlaybackTracker {
 		rate = rate * 0.7 + slope * 0.3;
 	}
 
+	// ---------------------------------------------------------------- demo (screenshots/tests only)
+
+	private volatile MediaSnapshot demo;
+	private volatile long demoStartNanos;
+
+	/** Pretend this song is playing from its {@code positionMs()} (null = back to the real player). */
+	public void setDemo(MediaSnapshot snapshot) {
+		demo = snapshot;
+		demoStartNanos = System.nanoTime();
+	}
+
+	public boolean demoActive() {
+		return demo != null;
+	}
+
 	/** Current smooth position in ms. */
 	public long positionMs() {
+		MediaSnapshot d = demo;
+		if (d != null) return d.positionMs() + (System.nanoTime() - demoStartNanos) / 1_000_000;
 		long pos = estimatedRawPositionMs();
 		MediaSnapshot s = latest;
 		if (s != null && s.durationMs() > 0) pos = Math.min(pos, s.durationMs());
@@ -167,11 +184,14 @@ public final class PlaybackTracker {
 	}
 
 	public MediaSnapshot current() {
+		MediaSnapshot d = demo;
+		if (d != null) return d;
 		MediaSnapshot s = latest;
 		return s != null && s.hasTrack() ? s : null;
 	}
 
 	public boolean isPlaying() {
+		if (demo != null) return true;
 		return playing;
 	}
 }
