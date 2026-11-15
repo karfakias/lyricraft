@@ -45,6 +45,9 @@ public final class EchoesStyle implements LyricStyle {
 		final float seed;
 		long diedAt = -1;
 		long retiredAt = -1; // when a newer line took over
+		boolean finished;    // the line has been sung through
+		long doneAt;         // when that happened (only set if we saw it happen)
+		boolean sawDone;
 		int lastWord = -1;
 		float coverFade = 1f;
 
@@ -340,6 +343,13 @@ public final class EchoesStyle implements LyricStyle {
 			if (since >= 0 && since < 0.3f) beat = Math.max(beat, 1f - since / 0.3f);
 		}
 		if (!current || progress >= 1f) beat = 0f;
+		// mark the moment the line finishes (only right at the end, not when we skip past it)
+		long over = f.posMs() - line.endMs();
+		if (!pn.finished && over >= 0) {
+			pn.finished = true;
+			pn.sawDone = over < 600;
+			pn.doneAt = now;
+		}
 		if (current && sungWord > pn.lastWord) {
 			if (pn.lastWord >= 0 || sungWord == 0) burst(f, pn, now, 3);
 			pn.lastWord = sungWord;
@@ -391,6 +401,15 @@ public final class EchoesStyle implements LyricStyle {
 			g.fill(ix0, iy0, ix1, iy1, Draw.argb(Draw.mix(acc, 0xFFFFFF, 0.6f), 0.22f * fl * fl * f.vis()));
 		}
 
+		// a ripple off the edge when the line finishes
+		float done = pn.sawDone ? (now - pn.doneAt) / 1e9f : -1f;
+		if (done >= 0 && done < 0.7f) {
+			float k = done / 0.7f;
+			int grow = Math.round(Draw.easeOutCubic(k) * 10f * Math.max(0.6f, scale));
+			int col = Draw.argb(Draw.mix(acc, 0xFFFFFF, 0.4f), 0.45f * (1f - k) * vis);
+			frame(g, ix0 - grow, iy0 - grow, ix1 + grow, iy1 + grow, col);
+		}
+
 		// tiny timestamp tag on the top-left edge
 		float tagScale = Math.max(0.35f, scale * 0.42f);
 		Draw.text(g, f.font(), NowPlayingTime.of(line.startMs()) + (ch ? "  ♫ chorus" : ""), ix0 + 4 * scale, iy0 + 2 * scale, tagScale,
@@ -402,6 +421,7 @@ public final class EchoesStyle implements LyricStyle {
 
 		if (!current) {
 			Draw.text(g, f.font(), text, tx, ty, s, Draw.argb(Draw.mix(0xEEF2FF, acc, 0.3f), 0.95f * vis), false);
+			shine(g, f, text, tx, ty, s, done, vis);
 			return;
 		}
 		boolean waiting = f.active() < 0 && line.startMs() - f.posMs() > 1800;
@@ -434,6 +454,27 @@ public final class EchoesStyle implements LyricStyle {
 			Draw.glowText(g, f.font(), w.text(), cx - ww * pop / 2f, cy - lh * size * pop / 2f + rise, s * pop, col,
 					vis * Math.min(1f, t * 1.6f), singing ? 1f + beat : 0.45f);
 		}
+		shine(g, f, text, tx, ty, s, done, vis);
+	}
+
+	/** A bright band that sweeps across the text once, right after the line is sung. */
+	private static void shine(GuiGraphicsExtractor g, Frame f, String text, float tx, float ty, float s, float done, float vis) {
+		if (done < 0 || done > 0.55f) return;
+		float k = done / 0.55f;
+		float tw = f.font().width(text) * s;
+		float band = Math.max(6f, 14f * s);
+		float bx = tx - band + (tw + band * 2) * k;
+		int top = Math.round(ty - 2 * s), bottom = Math.round(ty + (f.font().lineHeight + 2) * s);
+		g.enableScissor(Math.round(bx), top, Math.round(bx + band), bottom);
+		Draw.text(g, f.font(), text, tx, ty, s, Draw.argb(0xFFFFFF, 0.85f * vis * (float) Math.sin(k * Math.PI)), false);
+		g.disableScissor();
+	}
+
+	private static void frame(GuiGraphicsExtractor g, int x0, int y0, int x1, int y1, int col) {
+		g.fill(x0, y0, x1, y0 + 1, col);
+		g.fill(x0, y1 - 1, x1, y1, col);
+		g.fill(x0, y0 + 1, x0 + 1, y1 - 1, col);
+		g.fill(x1 - 1, y0 + 1, x1, y1 - 1, col);
 	}
 
 	// ------------------------------------------------------------------ sparks
