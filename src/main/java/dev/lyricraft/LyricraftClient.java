@@ -165,9 +165,7 @@ public final class LyricraftClient implements ClientModInitializer {
 			case CLASSIC -> "Classic";
 			case SKY -> "Sky Writing";
 			case ORBIT -> "Orbit";
-			case HOLOGRAM -> "Hologram";
 			case ECHOES -> "Echoes";
-			case CINEMA -> "Cinema";
 			case POP -> "Pop";
 			case NEON -> "Neon";
 			case WAVE -> "Wave";

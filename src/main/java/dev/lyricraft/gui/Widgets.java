@@ -204,6 +204,63 @@ final class Widgets {
 		}
 	}
 
+	/** A bigger, gold-edged tile with a "Recommended" badge, for the one option we want to point out. */
+	static final class Featured extends Base {
+		private static final int GOLD = 0xFFC93B;
+		private final BooleanSupplier selected;
+		private final Runnable pick;
+		private final String subtitle;
+		final String info;
+
+		Featured(int x, int y, int w, int h, String label, String subtitle, BooleanSupplier selected, Runnable pick, String info) {
+			super(x, y, w, h, label, null);
+			this.subtitle = subtitle;
+			this.selected = selected;
+			this.pick = pick;
+			this.info = info;
+		}
+
+		@Override
+		public void onClick(MouseButtonEvent e, boolean doubleClick) {
+			pick.run();
+		}
+
+		@Override
+		protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
+			boolean on = selected.getAsBoolean();
+			hover = Draw.approach(hover, isHoveredOrFocused() ? 1f : 0f, 0.15f);
+			int x0 = getX(), y0 = getY(), x1 = getRight(), y1 = getBottom();
+			float glow = 0.55f + 0.45f * (float) Math.sin(System.nanoTime() / 4e8);
+
+			// soft gold halo, then the tile
+			panel(g, x0 - 1, y0 - 1, x1 + 1, y1 + 1, Draw.argb(GOLD, (0.18f + 0.12f * glow) * (on ? 1.3f : 1f)));
+			g.fillGradient(x0, y0, x1, y1, Draw.argb(Draw.mix(0x17171D, GOLD, on ? 0.22f : 0.12f + 0.06f * hover), 0.95f),
+					Draw.argb(0x17171D, 0.95f));
+			int edge = Draw.argb(GOLD, on ? 1f : 0.55f + 0.35f * glow);
+			g.fill(x0 + 1, y0, x1 - 1, y0 + 1, edge);
+			g.fill(x0 + 1, y1 - 1, x1 - 1, y1, edge);
+			g.fill(x0, y0 + 1, x0 + 1, y1 - 1, edge);
+			g.fill(x1 - 1, y0 + 1, x1, y1 - 1, edge);
+
+			Font f = font();
+			String badge = "★ RECOMMENDED";
+			float bs = 0.7f;
+			int bw = Math.round(f.width(badge) * bs) + 8;
+			int bx = x1 - bw - 5, by = y0 + 5;
+			panel(g, bx, by, bx + bw, by + 10, Draw.argb(GOLD, 0.95f));
+			Draw.text(g, f, badge, bx + 4, by + 2, bs, 0xFF1A1405, false);
+
+			int tx = x0 + 8;
+			if (on) {
+				g.text(f, "✔", tx, y0 + 6, 0xFF000000 | GOLD, false);
+				tx += 11;
+			}
+			g.text(f, getMessage().getString(), tx, y0 + 6, 0xFFFFFFFF, true);
+			Draw.text(g, f, Draw.ellipsize(f, subtitle, Math.round((getWidth() - 16) / 0.8f)), x0 + 8, y0 + 18, 0.8f,
+					Draw.argb(0xD8C9A0, 1f), false);
+		}
+	}
+
 	/** Vertical tab in the left rail: icon + name. */
 	static final class Tab extends Base {
 		private final String icon;

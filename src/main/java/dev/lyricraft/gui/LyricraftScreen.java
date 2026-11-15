@@ -147,19 +147,32 @@ public final class LyricraftScreen extends Screen implements LyricraftUi {
 	// ------------------------------------------------------------------ tabs
 
 	private int styleTab(int y) {
-		Config.Style[] all = Config.Style.values();
 		int cw = cx1 - cx0, half = (cw - 4) / 2;
-		for (int i = 0; i < all.length; i++) {
-			Config.Style s = all[i];
-			add(new Widgets.Chip(cx0 + (i % 2) * (half + 4), y + (i / 2) * 22, half, 20, LyricraftClient.styleName(s),
-					() -> cfg().style == s, () -> {
-				cfg().style = s;
-				cfg().enabled = true;
-				cfg().save();
-			}, styleInfo(s)));
+		// Classic first (the default), then Echoes in its own "recommended" box, then the rest
+		add(styleChip(Config.Style.CLASSIC, cx0, y, cw));
+		y += 24;
+		add(new Widgets.Featured(cx0, y, cw, 32, LyricraftClient.styleName(Config.Style.ECHOES),
+				"Lyrics stay where you looked",
+				() -> cfg().style == Config.Style.ECHOES, () -> pickStyle(Config.Style.ECHOES), styleInfo(Config.Style.ECHOES)));
+		y += 38;
+		int i = 0;
+		for (Config.Style s : Config.Style.values()) {
+			if (s == Config.Style.CLASSIC || s == Config.Style.ECHOES) continue;
+			add(styleChip(s, cx0 + (i % 2) * (half + 4), y + (i / 2) * 22, half));
+			i++;
 		}
 		info = "";
-		return y + ((all.length + 1) / 2) * 22;
+		return y + ((i + 1) / 2) * 22;
+	}
+
+	private Widgets.Chip styleChip(Config.Style s, int x, int y, int w) {
+		return new Widgets.Chip(x, y, w, 20, LyricraftClient.styleName(s), () -> cfg().style == s, () -> pickStyle(s), styleInfo(s));
+	}
+
+	private void pickStyle(Config.Style s) {
+		cfg().style = s;
+		cfg().enabled = true;
+		cfg().save();
 	}
 
 	private int cardTab(int y) {
@@ -233,7 +246,7 @@ public final class LyricraftScreen extends Screen implements LyricraftUi {
 				"Show the upcoming line under the current one.");
 		y += 22;
 		toggle(cx0, y, cw, "Hide in menus", () -> cfg().hideInMenus, v -> cfg().hideInMenus = v,
-				"Hide everything while the inventory or pause menu is open. Chat never hides it.");
+				"Hide the lyrics while the inventory or pause menu is open. The Now Playing card stays, and chat never hides anything.");
 		y += 22;
 		add(new Widgets.Slider(cx0, y, cw, "Text size", (cfg().scale - 0.5) / 2.5,
 				v -> Math.round((0.5 + v * 2.5) * 100) + "%", v -> cfg().scale = (float) (0.5 + v * 2.5), "Tip: you can also scroll over the lyrics."));
@@ -431,6 +444,7 @@ public final class LyricraftScreen extends Screen implements LyricraftUi {
 		String text = info;
 		for (GuiEventListener l : children()) {
 			if (l instanceof Widgets.Chip chip && chip.visible && chip.isHovered()) text = chip.info;
+			if (l instanceof Widgets.Featured f && f.visible && f.isHovered()) text = f.info;
 		}
 		if (text.isEmpty()) {
 			text = switch (tab) {
@@ -634,12 +648,10 @@ public final class LyricraftScreen extends Screen implements LyricraftUi {
 
 	static String styleInfo(Config.Style s) {
 		return switch (s) {
-			case CLASSIC -> "Clean karaoke lines with a soft glow. Works everywhere. Can be dragged.";
+			case CLASSIC -> "The default. Clean karaoke lines with a soft glow. Works everywhere. Can be dragged.";
 			case SKY -> "Giant lyrics written across the sky. Switches to Classic in caves and buildings.";
 			case ORBIT -> "Words spin in a ring around you and pop as they're sung.";
-			case HOLOGRAM -> "A sci-fi panel that floats in front of you and follows your view.";
 			case ECHOES -> "Every line appears where you look and stays there in the world, leaving a trail of lyrics. Lines never stack on top of each other.";
-			case CINEMA -> "Movie letterbox bars with big subtitles.";
 			case POP -> "Words appear one by one with a bouncy pop. Can be dragged.";
 			case NEON -> "Flickering neon-sign lyrics. Can be dragged.";
 			case WAVE -> "Letters ride a wave that moves with the song. Can be dragged.";
