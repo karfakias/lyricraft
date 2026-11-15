@@ -88,8 +88,18 @@ public final class LyricsHud implements HudElement {
 		styles.put(Config.Style.WAVE, new WaveStyle());
 	}
 
+	/** Time spent building the HUD, for the benchmark run: {total nanos, frames}. */
+	public static final long[] PERF = new long[2];
+
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor g, DeltaTracker delta) {
+		long t0 = System.nanoTime();
+		build(g, delta);
+		PERF[0] += System.nanoTime() - t0;
+		PERF[1]++;
+	}
+
+	private void build(GuiGraphicsExtractor g, DeltaTracker delta) {
 		Minecraft mc = Minecraft.getInstance();
 		Config cfg = mod.config;
 		long now = System.nanoTime();

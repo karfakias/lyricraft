@@ -5,7 +5,7 @@
 	"name": "Lyricraft tests",
 	"environment": "client",
 	"entrypoints": {
-		"fabric-client-gametest": ["dev.lyricraft.test.LyricraftClientGameTest", "dev.lyricraft.test.GalleryShots"]
+		"fabric-client-gametest": ["dev.lyricraft.test.LyricraftClientGameTest", "dev.lyricraft.test.GalleryShots", "dev.lyricraft.test.PerfBench"]
 	},
 	"depends": {
 		"lyricraft": "*"
