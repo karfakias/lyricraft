@@ -4,6 +4,7 @@ import dev.lyricraft.hud.Draw;
 import dev.lyricraft.hud.GlassPanel;
 import dev.lyricraft.hud.HudSpace;
 import dev.lyricraft.hud.Projector;
+import dev.lyricraft.hud.Sprites;
 import dev.lyricraft.lyrics.Lyrics;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -267,29 +268,28 @@ public final class EchoesStyle implements LyricStyle {
 		for (Panel pn : panels) {
 			Vec3 at = pn.posNow(now);
 			Projector.Point pt = f.proj().project(at);
-			Rect rect = rectOf(f.proj(), at, pn.wBlocks, pn.hBlocks);
+			Rect rect = pt == null || pt.pxPerBlock() <= 0 ? null : rectAt(pt, pn.wBlocks, pn.hBlocks);
 			float vis = fade(pn, now) * f.vis();
-			if (pt != null && pt.pxPerBlock() <= 0) pt = null;
-			if (pt != null && prev != null && rect != null && prevRect != null) {
+			if (rect != null && prevRect != null && Math.min(vis, prevVis) > 0.02f) {
 				float a = Math.min(vis, prevVis);
 				float dx = pt.x() - prev.x(), dy = pt.y() - prev.y();
-				int segs = 24;
-				for (int i = 0; i < segs; i++) {
-					float u0 = i / (float) segs, u1 = (i + 1) / (float) segs, um = (u0 + u1) / 2f;
-					float mx = prev.x() + dx * um, my = prev.y() + dy * um;
-					if (inside(prevRect, mx, my) || inside(rect, mx, my)) continue; // stop at the panel edges
-					int col = Draw.mix(c0, c1, um);
-					float x0 = prev.x() + dx * u0, y0 = prev.y() + dy * u0, x1 = prev.x() + dx * u1, y1 = prev.y() + dy * u1;
-					Draw.line(g, x0, y0, x1, y1, 3f, Draw.argb(col, 0.06f * a));
-					Draw.line(g, x0, y0, x1, y1, 1f, Draw.argb(col, 0.26f * a));
-				}
-				// a little light travelling from the older panel to the newer one
-				float u = ((f.time() * 0.45f + n * 0.37f) % 1f);
-				float sx = prev.x() + dx * u, sy = prev.y() + dy * u;
-				if (!inside(prevRect, sx, sy) && !inside(rect, sx, sy)) {
-					float bright = (float) Math.sin(u * Math.PI);
-					Draw.circle(g, sx, sy, 2.2f, Draw.argb(c0, 0.22f * a * bright));
-					Draw.circle(g, sx, sy, 1f, Draw.argb(0xFFFFFF, 0.7f * a * bright));
+				// only the stretch between the two panels: leave the first, enter the second
+				float t0 = exit(prevRect, prev.x(), prev.y(), dx, dy);
+				float t1 = 1f - exit(rect, pt.x(), pt.y(), -dx, -dy);
+				if (t1 > t0) {
+					for (int i = 0; i < 3; i++) {
+						float u0 = t0 + (t1 - t0) * i / 3f, u1 = t0 + (t1 - t0) * (i + 1) / 3f;
+						int col = Draw.mix(c0, c1, (u0 + u1) / 2f);
+						float x0 = prev.x() + dx * u0, y0 = prev.y() + dy * u0, x1 = prev.x() + dx * u1, y1 = prev.y() + dy * u1;
+						Draw.line(g, x0, y0, x1, y1, 3f, Draw.argb(col, 0.06f * a));
+						Draw.line(g, x0, y0, x1, y1, 1f, Draw.argb(col, 0.26f * a));
+					}
+					// a little light travelling from the older panel to the newer one
+					float u = t0 + (t1 - t0) * ((f.time() * 0.45f + n * 0.37f) % 1f);
+					float bright = (float) Math.sin((u - t0) / (t1 - t0) * Math.PI);
+					float sx = prev.x() + dx * u, sy = prev.y() + dy * u;
+					Sprites.glow(g, sx - 4, sy - 4, 8, 8, Draw.argb(c0, 0.5f * a * bright));
+					Sprites.circle(g, sx, sy, 1f, Draw.argb(0xFFFFFF, 0.7f * a * bright));
 				}
 				n++;
 			}
@@ -299,8 +299,19 @@ public final class EchoesStyle implements LyricStyle {
 		}
 	}
 
-	private static boolean inside(Rect r, float x, float y) {
-		return x > r.x0 - 3 && x < r.x1 + 3 && y > r.y0 - 3 && y < r.y1 + 3;
+	private static Rect rectAt(Projector.Point pt, float wBlocks, float hBlocks) {
+		float hw = wBlocks * pt.pxPerBlock() / 2f + 3, hh = hBlocks * pt.pxPerBlock() / 2f + 3;
+		return new Rect(pt.x() - hw, pt.y() - hh, pt.x() + hw, pt.y() + hh, pt.x(), pt.y(), pt.pxPerBlock());
+	}
+
+	/** How far along (x, y) + t * (dx, dy) you leave the box, starting inside it (0..1, clamped). */
+	private static float exit(Rect r, float x, float y, float dx, float dy) {
+		float t = 1f;
+		if (dx > 0) t = Math.min(t, (r.x1 - x) / dx);
+		else if (dx < 0) t = Math.min(t, (r.x0 - x) / dx);
+		if (dy > 0) t = Math.min(t, (r.y1 - y) / dy);
+		else if (dy < 0) t = Math.min(t, (r.y0 - y) / dy);
+		return Math.clamp(t, 0f, 1f);
 	}
 
 	private static float fade(Panel pn, long now) {
@@ -542,8 +553,8 @@ public final class EchoesStyle implements LyricStyle {
 				Draw.text(g, f.font(), "♪", x - 2.5f * s, y - 4 * s, s, Draw.argb(col, 0.85f * a), false);
 			} else {
 				float r = Math.clamp(pt.pxPerBlock() * 0.012f, 0.6f, 2f);
-				Draw.circle(g, x, y, r * 2f, Draw.argb(col, 0.18f * a));
-				Draw.circle(g, x, y, r, Draw.argb(Draw.mix(col, 0xFFFFFF, 0.6f), 0.9f * a));
+				Sprites.glow(g, x - r * 3f, y - r * 3f, r * 6f, r * 6f, Draw.argb(col, 0.45f * a));
+				Sprites.circle(g, x, y, r, Draw.argb(Draw.mix(col, 0xFFFFFF, 0.6f), 0.9f * a));
 			}
 		}
 	}

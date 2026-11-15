@@ -25,7 +25,7 @@ public final class LyricraftClientGameTest implements FabricClientGameTest {
 
 	@Override
 	public void runTest(ClientGameTestContext ctx) {
-		if ("1".equals(System.getenv("LYRICRAFT_GALLERY"))) return; // gallery run only
+		if ("1".equals(System.getenv("LYRICRAFT_GALLERY")) || "1".equals(System.getenv("LYRICRAFT_PERF"))) return; // gallery/benchmark run only
 		try (TestSingleplayerContext world = ctx.worldBuilder().create()) {
 			world.getConnection().waitForChunksRender();
 			Config cfg = LyricraftClient.get().config;

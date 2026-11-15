@@ -3,6 +3,7 @@ package dev.lyricraft.overlay;
 import dev.lyricraft.Config;
 import dev.lyricraft.LyricraftClient;
 import dev.lyricraft.hud.Draw;
+import dev.lyricraft.hud.Sprites;
 import dev.lyricraft.media.MediaSnapshot;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -86,13 +87,12 @@ public final class Overlays {
 		for (float gr = r - 3; gr > 11; gr -= 3) Draw.ring(g, cx, cy, gr, gr - 0.6f, Draw.argb(0x262626, k));
 		// light catching the grooves (two sheens that turn with the record)
 		for (int s = 0; s < 2; s++) {
-			double ang = vinylAngle + s * Math.PI;
-			for (float rr = 12; rr < r - 1; rr += 1.0f) {
-				float w = 0.18f + 0.1f * (float) Math.sin(rr);
-				Draw.line(g, cx + (float) Math.cos(ang - w * 0.5) * rr, cy + (float) Math.sin(ang - w * 0.5) * rr,
-						cx + (float) Math.cos(ang + w * 0.5) * rr, cy + (float) Math.sin(ang + w * 0.5) * rr,
-						1f, Draw.argb(0xFFFFFF, 0.10f * k));
-			}
+			// a soft streak along the radius, turned with the record
+			g.pose().pushMatrix();
+			g.pose().translate(cx, cy);
+			g.pose().rotate((float) (vinylAngle + s * Math.PI));
+			Sprites.glow(g, 10, -r * 0.16f, r - 10, r * 0.32f, Draw.argb(0xFFFFFF, 0.16f * k));
+			g.pose().popMatrix();
 		}
 		// label in the song's colours, pulsing with the beat
 		Draw.circle(g, cx, cy, 10, Draw.argb(Draw.mix(a, 0xFFFFFF, pulse * 0.25f), k));
@@ -144,7 +144,7 @@ public final class Overlays {
 		// warm, slightly washed-out tape colour
 		g.fill(0, 0, w, h, Draw.argb(0x2A1A10, 0.10f * k));
 		// scanlines
-		for (int y = 0; y < h; y += 2) g.fill(0, y, w, y + 1, Draw.argb(0x000000, 0.10f * k));
+		Sprites.region(g, Sprites.scanlines(), 0, 0, w, h, 0, 0, 1, h, Draw.argb(0xFFFFFF, 0.10f * k));
 		// tracking noise band rolling down the screen
 		float bandY = ((time * 0.18f) % 1.4f - 0.2f) * h;
 		for (int i = 0; i < 26; i++) {
@@ -153,7 +153,7 @@ public final class Overlays {
 			g.fill(x, y, x + 10 + random.nextInt(60), y + 1, Draw.argb(0xFFFFFF, (0.08f + random.nextFloat() * 0.18f) * k));
 		}
 		// grain
-		for (int i = 0; i < 220; i++) {
+		for (int i = 0; i < 90; i++) {
 			int x = random.nextInt(Math.max(1, w)), y = random.nextInt(Math.max(1, h));
 			g.fill(x, y, x + 1, y + 1, Draw.argb(random.nextBoolean() ? 0xFFFFFF : 0x000000, 0.12f * k));
 		}

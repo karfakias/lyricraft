@@ -25,6 +25,15 @@ public final class Lyrics {
 		 * based on character position, since LRC only gives one timestamp per line.
 		 */
 		public java.util.List<Word> words() {
+			java.util.List<Word> cached = WORDS.get(this);
+			if (cached != null) return cached;
+			java.util.List<Word> out = splitWords();
+			if (WORDS.size() > 4000) WORDS.clear();
+			WORDS.put(this, out);
+			return out;
+		}
+
+		private java.util.List<Word> splitWords() {
 			java.util.List<Word> out = new ArrayList<>();
 			String[] parts = text.trim().split("\\s+");
 			int total = Math.max(1, text.replaceAll("\\s+", "").length());
@@ -35,9 +44,12 @@ public final class Lyrics {
 				seen += p.length();
 				out.add(new Word(p, start, seen / (float) total));
 			}
-			return out;
+			return java.util.List.copyOf(out);
 		}
 	}
+
+	/** Words per line, worked out once (they were split with a regex every frame before). */
+	private static final java.util.Map<Line, java.util.List<Word>> WORDS = new java.util.concurrent.ConcurrentHashMap<>();
 
 	/** A word and the fraction of the line at which it starts and ends. */
 	public record Word(String text, float start, float end) {}

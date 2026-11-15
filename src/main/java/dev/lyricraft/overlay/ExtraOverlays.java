@@ -191,9 +191,9 @@ final class ExtraOverlays {
 		// night sky gradient
 		g.fillGradient(0, 0, w, skyH, Draw.argb(0x060A24, 0.55f * k), Draw.argb(0x060A24, 0f));
 		// a faint milky-way band in the song's colour
-		for (int x = 0; x < w; x += 4) {
-			float y = skyH * 0.35f + (float) Math.sin(x / (float) w * 3.0 + 0.6) * skyH * 0.18f;
-			g.fillGradient(x, Math.round(y - 14), x + 4, Math.round(y + 14), Draw.argb(a, 0f), Draw.argb(a, 0.05f * k));
+		for (int x = 0; x < w; x += 16) {
+			float y = skyH * 0.35f + (float) Math.sin((x + 8) / (float) w * 3.0 + 0.6) * skyH * 0.18f;
+			g.fillGradient(x, Math.round(y - 14), x + 16, Math.round(y + 14), Draw.argb(a, 0f), Draw.argb(a, 0.05f * k));
 		}
 		// twinkling stars (fixed positions from a seed so they don't jump around)
 		Random r = new Random(1337);
@@ -244,7 +244,7 @@ final class ExtraOverlays {
 		g.fill(0, Math.round(cy), w, Math.round(cy) + 1, Draw.argb(a, 0.10f * k));
 
 		float prevX = 0, prevY = cy;
-		int step = 3;
+		int step = 6;
 		for (int x = 0; x <= w; x += step) {
 			float u = x / (float) w;
 			// envelope keeps the edges calm and the middle lively
