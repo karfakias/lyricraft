@@ -19,7 +19,6 @@ import java.net.http.HttpClient;
 import java.net.http.WebSocket;
 import java.security.SecureRandom;
 import java.time.Duration;
-import java.util.HexFormat;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -73,6 +72,9 @@ public final class OnlineClient {
 	private volatile WebSocket socket;
 	private volatile Status status = Status.OFF;
 	private volatile UUID myId;
+	/** Every id we can be known by (premium id and offline id when verified). */
+	private volatile Set<UUID> myIds = Set.of();
+	private volatile boolean verified;
 	private volatile boolean connecting;
 	private long retryAt;
 	private long backoffMs = 3000;
@@ -103,8 +105,17 @@ public final class OnlineClient {
 
 	/** How many other Lyricraft players you can see right now. */
 	public int othersOnline() {
-		UUID me = myId;
-		return (int) remotes.keySet().stream().filter(id -> !id.equals(me)).count();
+		return (int) remotes.keySet().stream().filter(id -> !isMe(id)).count();
+	}
+
+	/** True if the service knows us by this id. */
+	public boolean isMe(UUID id) {
+		return id != null && (id.equals(myId) || myIds.contains(id));
+	}
+
+	/** True when the service confirmed this is an official Minecraft account. */
+	public boolean verified() {
+		return verified;
 	}
 
 	// ------------------------------------------------------------------ lifecycle (client thread)
@@ -174,28 +185,46 @@ public final class OnlineClient {
 	}
 
 	/**
-	 * Prove who we are for this connection's challenge. We tell Mojang "I'm joining server
-	 * sha1(lyricraft:challenge)" (the same call the game makes when you join a server, and the
-	 * only place your login is sent). The service then asks Mojang which account did that.
-	 * Tying it to the service's own challenge means a login code captured by some Minecraft
-	 * server can't be reused to pretend to be you.
+	 * Say who we are for this connection's challenge.
+	 *
+	 * Official accounts have a chat key pair that Mojang signed (the same one Minecraft uses to
+	 * sign chat messages). We sign the challenge with it and send Mojang's certificate, so the
+	 * service can check it's really this account without contacting Mojang. Your login token is
+	 * never sent anywhere. The signature only fits this one challenge, so it can't be reused.
+	 *
+	 * Offline accounts don't have that key; they just send their name and the service gives
+	 * them the same id a cracked server would.
 	 */
 	private void login(WebSocket ws, String nonce) {
 		Minecraft mc = Minecraft.getInstance();
 		User user = mc.getUser();
 		Thread t = new Thread(() -> {
 			try {
-				String serverId = serverIdFor(nonce);
-				try {
-					mc.services().sessionService().joinServer(user.getProfileId(), user.getAccessToken(), serverId);
-				} catch (Exception e) {
-					// offline / dev accounts can't do this; the service will refuse them
-					LyricraftClient.LOG.debug("Lyricraft online: Mojang join failed: {}", e.toString());
-				}
 				JsonObject hello = new JsonObject();
 				hello.addProperty("t", "hello");
 				hello.addProperty("name", user.getName());
 				hello.addProperty("v", LyricraftClient.VERSION);
+				try {
+					var keys = mc.getProfileKeyPairManager().prepareKeyPair().get(10, java.util.concurrent.TimeUnit.SECONDS);
+					if (keys.isPresent()) {
+						var pair = keys.get();
+						var data = pair.publicKey().data();
+						var b64 = java.util.Base64.getEncoder();
+						JsonObject cert = new JsonObject();
+						cert.addProperty("uuid", user.getProfileId().toString());
+						cert.addProperty("exp", data.expiresAt().toEpochMilli());
+						cert.addProperty("key", b64.encodeToString(data.key().getEncoded()));
+						cert.addProperty("sig", b64.encodeToString(data.keySignature()));
+						hello.add("cert", cert);
+						var signer = java.security.Signature.getInstance("SHA256withRSA");
+						signer.initSign(pair.privateKey());
+						signer.update(("lyricraft:" + nonce).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+						hello.addProperty("proof", b64.encodeToString(signer.sign()));
+					}
+				} catch (Exception e) {
+					// offline account, chat disabled, or Mojang unreachable: join as an offline account
+					LyricraftClient.LOG.debug("Lyricraft online: no chat key, joining unverified: {}", e.toString());
+				}
 				// test shortcut: only ever sent to a test service on this computer
 				if (isLocal(mod.config)) hello.addProperty("devId", user.getProfileId().toString());
 				ws.sendText(hello.toString(), true);
@@ -205,12 +234,6 @@ public final class OnlineClient {
 		}, "Lyricraft online login");
 		t.setDaemon(true);
 		t.start();
-	}
-
-	static String serverIdFor(String nonce) throws Exception {
-		byte[] hash = java.security.MessageDigest.getInstance("SHA-1")
-				.digest(("lyricraft:" + nonce).getBytes(java.nio.charset.StandardCharsets.UTF_8));
-		return HexFormat.of().formatHex(hash);
 	}
 
 	private static boolean isLocal(Config cfg) {
@@ -289,7 +312,7 @@ public final class OnlineClient {
 	private void addEcho(JsonObject m) {
 		try {
 			UUID id = UUID.fromString(m.get("id").getAsString());
-			if (id.equals(myId) && !demo) return;
+			if (isMe(id) && !demo) return;
 			JsonArray p = m.getAsJsonArray("pos");
 			double x = p.get(0).getAsDouble(), y = p.get(1).getAsDouble(), z = p.get(2).getAsDouble();
 			if (!Double.isFinite(x) || !Double.isFinite(y) || !Double.isFinite(z) || Math.abs(x) > 3e7 || Math.abs(z) > 3e7 || Math.abs(y) > 4096) return;
@@ -419,17 +442,30 @@ public final class OnlineClient {
 			}
 			case "welcome" -> {
 				myId = UUID.fromString(m.get("id").getAsString());
+				Set<UUID> ids = new java.util.HashSet<>();
+				ids.add(myId);
+				if (m.has("ids") && m.get("ids").isJsonArray()) {
+					for (JsonElement el : m.getAsJsonArray("ids")) {
+						try {
+							ids.add(UUID.fromString(el.getAsString()));
+						} catch (RuntimeException ignored) {
+							// skip anything that isn't an id
+						}
+						if (ids.size() >= 4) break;
+					}
+				}
+				myIds = Set.copyOf(ids);
+				verified = m.has("verified") && m.get("verified").getAsBoolean();
 				status = Status.ONLINE;
 				backoffMs = 3000;
 				lastWatch = Set.of();
 				lastStateKey = "";
 				ticks = 39; // send the watch list on the next tick
-				LyricraftClient.LOG.info("Lyricraft online: connected");
+				LyricraftClient.LOG.info("Lyricraft online: connected ({})", verified ? "verified account" : "offline account");
 			}
 			case "denied" -> status = Status.NOT_VERIFIED;
 			case "snapshot" -> {
-				UUID me = myId;
-				remotes.keySet().removeIf(id -> !id.equals(me));
+				remotes.keySet().removeIf(id -> !isMe(id));
 				for (JsonElement el : m.getAsJsonArray("players")) apply(el.getAsJsonObject());
 			}
 			case "state" -> apply(m);

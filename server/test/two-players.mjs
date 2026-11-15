@@ -1,6 +1,9 @@
 // Tests the service with fake players against a local `npm run dev` (DEV mode).
 // Usage: node test/two-players.mjs [ws://127.0.0.1:8787/ws]
 
+import { createHash, createPrivateKey, generateKeyPairSync, sign } from "node:crypto";
+import { TEST_MOJANG_PRIVATE } from "./test-mojang-key.mjs";
+
 const URL_ = process.argv[2] || "ws://127.0.0.1:8787/ws";
 const A = "11111111-1111-1111-1111-111111111111";
 const B = "22222222-2222-2222-2222-222222222222";
@@ -61,9 +64,9 @@ async function player(label, id) {
 const liar = await connect("liar");
 const ch = await liar.next((m) => m.t === "challenge");
 check(/^[0-9a-f]{64}$/.test(ch.nonce), "a connection gets a random challenge");
-// 2) a login that isn't really from Mojang is refused (real Mojang check, no dev id)
-liar.send({ t: "hello", name: "Notch" });
-check(!!(await liar.next((m) => m.t === "denied").catch(() => null)), "a fake login is refused");
+// 2) a login with a name no Minecraft account can have is refused
+liar.send({ t: "hello", name: "§cNot a name!" });
+check(!!(await liar.next((m) => m.t === "denied").catch(() => null)), "a broken login is refused");
 
 // 3) players
 const a = await player("PlayerA", A);
@@ -142,6 +145,72 @@ await a.next((m) => m.t === "gone" && m.id === B);
 b.send({ t: "echo", pos: [1, 70, 0], dim: "minecraft:overworld", line: "hidden", dur: 3000 });
 check(await a.nothing((m) => m.t === "echo"), "panels only go to players who see each other");
 b.send({ t: "watch", ids: [A] });
+
+// ---------------------------------------------------------------- logins without a dev id
+
+/** Java's UUID.nameUUIDFromBytes("OfflinePlayer:" + name), what a cracked server uses. */
+function javaOfflineId(name) {
+	const h = createHash("md5").update(`OfflinePlayer:${name}`).digest();
+	h[6] = (h[6] & 0x0f) | 0x30;
+	h[8] = (h[8] & 0x3f) | 0x80;
+	const x = h.toString("hex");
+	return `${x.slice(0, 8)}-${x.slice(8, 12)}-${x.slice(12, 16)}-${x.slice(16, 20)}-${x.slice(20)}`;
+}
+
+/** A chat certificate like Mojang's, signed with `signer` (the test stand-in, or a random key). */
+function certificate(uuid, expMs, signer) {
+	const player = generateKeyPairSync("rsa", { modulusLength: 2048 });
+	const spki = player.publicKey.export({ type: "spki", format: "der" });
+	const payload = Buffer.alloc(24 + spki.length);
+	Buffer.from(uuid.replace(/-/g, ""), "hex").copy(payload, 0);
+	payload.writeBigInt64BE(BigInt(expMs), 16);
+	spki.copy(payload, 24);
+	const sig = sign("sha1", payload, signer);
+	return {
+		cert: { uuid, exp: expMs, key: spki.toString("base64"), sig: sig.toString("base64") },
+		proofFor: (nonce) => sign("sha256", Buffer.from(`lyricraft:${nonce}`), player.privateKey).toString("base64"),
+	};
+}
+
+async function login(label, hello) {
+	const p = await connect(label);
+	const ch = await p.next((m) => m.t === "challenge");
+	p.send({ t: "hello", ...hello(ch.nonce) });
+	p.welcome = await p.next((m) => m.t === "welcome").catch(() => null);
+	return p;
+}
+
+const mojang = createPrivateKey({ key: Buffer.from(TEST_MOJANG_PRIVATE, "base64"), format: "der", type: "pkcs8" });
+const PREMIUM = "44444444-4444-4444-4444-444444444444";
+
+const cracked = await login("cracked", () => ({ name: "CrackedSteve" }));
+check(cracked.welcome?.id === javaOfflineId("CrackedSteve") && cracked.welcome?.verified === false,
+	"an offline account gets in, with the same id a cracked server gives it");
+
+const good = certificate(PREMIUM, Date.now() + 3_600_000, mojang);
+const premium = await login("premium", (nonce) => ({ name: "Favrd", cert: good.cert, proof: good.proofFor(nonce) }));
+check(premium.welcome?.id === PREMIUM && premium.welcome?.verified === true, "an official account is verified from its chat certificate");
+check(premium.welcome?.ids?.includes(javaOfflineId("Favrd")), "a verified player also gets their offline id (for cracked servers)");
+
+const forged = certificate(PREMIUM, Date.now() + 3_600_000, generateKeyPairSync("rsa", { modulusLength: 2048 }).privateKey);
+const faker = await login("faker", (nonce) => ({ name: "Favrd", cert: forged.cert, proof: forged.proofFor(nonce) }));
+check(faker.welcome?.id === javaOfflineId("Favrd") && !faker.welcome?.verified, "a certificate Mojang didn't sign can't claim a premium id");
+
+const old = certificate(PREMIUM, Date.now() - 1000, mojang);
+const expired = await login("expired", (nonce) => ({ name: "Favrd", cert: old.cert, proof: old.proofFor(nonce) }));
+check(expired.welcome?.id !== PREMIUM, "an expired certificate isn't accepted");
+
+const replay = await login("replay", () => ({ name: "Favrd", cert: good.cert, proof: good.proofFor("0".repeat(64)) }));
+check(replay.welcome?.id !== PREMIUM, "a signature for a different challenge can't be replayed");
+
+// on a cracked server the verified player shows up under their offline id
+const crackedFavrd = javaOfflineId("Favrd");
+premium.send({ t: "watch", ids: [cracked.welcome.id] });
+premium.send({ t: "state", sharing: true, song: "Cracked server song" });
+cracked.send({ t: "watch", ids: [crackedFavrd] });
+const seen = await cracked.next((m) => m.t === "state" && m.state?.song === "Cracked server song").catch(() => null);
+check(seen?.id === crackedFavrd, "players on a cracked server see a verified friend under the id their server uses");
+for (const p of [cracked, premium, faker, expired, replay]) p.ws.close();
 
 // B leaves
 b.ws.close();

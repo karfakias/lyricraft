@@ -3,7 +3,7 @@
   "private": true,
   "description": "Online service for Lyricraft: player badges and shared lyrics",
   "scripts": {
-    "dev": "wrangler dev --var DEV:1",
+    "dev": "wrangler dev --var DEV:1 --var TEST_MOJANG_KEY:MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzlI3+BzFDIJONtv2vRDRzwoyOnH6Cdr9l97aiY0uEpdYpppSOWgwBO62SqIDcojJY9AmzKSZi3PqQGtQsPLb231rjTwYdV3zX5gJrPL8DF8DWVL20+Ve88re7n1JWZtpOe86XW6IcDoQNzntkNeHXwSibr5xQrg7e/Li7e5IMmBMsOpjd0rIle1vp2pe8ZPGqK+/zfFIFurFTbehdw5wv45iagmadZzWUnoBWRYCR5W/hJFQhWq02JuGtFUJI4TwYs+bdVCf90cx1dzhQvOf4jF6AfQYu2bzmUq0ZO2eVH0tAogw8HXLjJXsTJyM7z1l8cnGcI2r2TDOujh62S+0lwIDAQAB",
     "deploy": "wrangler deploy",
     "test": "node test/two-players.mjs"
   },
