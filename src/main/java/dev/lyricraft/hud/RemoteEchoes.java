@@ -127,14 +127,8 @@ public final class RemoteEchoes {
 		// each friend gets their own colour
 		long mix = (e.owner().getMostSignificantBits() ^ e.owner().getLeastSignificantBits()) * 0x9E3779B97F4A7C15L;
 		int col = Draw.hsv((int) ((mix >>> 40) % 360), 0.55f, 1f);
-		g.fillGradient(ix0, iy0, ix1, iy1, Draw.argb(Draw.mix(col, 0x05070A, 0.82f), 0.6f * vis), Draw.argb(0x05070A, 0.38f * vis));
-		g.fill(ix0, iy0, ix1, iy0 + 1, Draw.argb(col, 0.8f * vis));
-		g.fill(ix0, iy1 - 1, ix1, iy1, Draw.argb(col, 0.5f * vis));
-		int c = Math.max(3, Math.round(5 * scale));
-		g.fill(ix0, iy0, ix0 + c, iy0 + 2, Draw.argb(0xFFFFFF, 0.7f * vis));
-		g.fill(ix0, iy0, ix0 + 2, iy0 + c, Draw.argb(0xFFFFFF, 0.7f * vis));
-		g.fill(ix1 - c, iy1 - 2, ix1, iy1, Draw.argb(0xFFFFFF, 0.7f * vis));
-		g.fill(ix1 - 2, iy1 - c, ix1, iy1, Draw.argb(0xFFFFFF, 0.7f * vis));
+		float seed = (float) ((mix >>> 20) & 0xFFFF) / 0xFFFF;
+		GlassPanel.draw(g, ix0, iy0, ix1, iy1, col, col, vis, current ? 0.6f : 0.2f, seed, (System.nanoTime() % 1_000_000_000_000L) / 1e9f);
 
 		// "♫ name" tag on the top edge
 		String name = nameOf(mc, e.owner());
