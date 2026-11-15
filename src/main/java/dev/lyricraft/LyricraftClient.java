@@ -34,6 +34,7 @@ public final class LyricraftClient implements ClientModInitializer {
 	public final PlaybackTracker tracker = new PlaybackTracker();
 	public final SyncMemory sync = new SyncMemory(config);
 	public final VibeEngine vibe = new VibeEngine();
+	public final dev.lyricraft.online.OnlineClient online = new dev.lyricraft.online.OnlineClient(this);
 	private final LyricsFetcher fetcher = new LyricsFetcher(config);
 
 	/** Lyrics for the current track; {@code null} while loading. */
@@ -66,6 +67,7 @@ public final class LyricraftClient implements ClientModInitializer {
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			handleKeys();
+			online.tick(client);
 			tracker.setAutoSync(config.autoSync);
 			MediaSnapshot now = tracker.current();
 			vibe.tick(client, config, now, lyrics(), tracker.positionMs() - currentOffsetMs(),
