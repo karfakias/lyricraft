@@ -49,7 +49,7 @@ Vinyl, Cassette, VHS, Synthwave, Visualizer, Lo-fi Rain, Starry Night, Oscillosc
 
 Players who use Lyricraft get a green ♫ after their name, in the tab list and above their head. If they're listening to something, the line they're hearing right now floats above their head, filling in as it's sung, with the song name under it. Yours shows to them too, and you can see your own in third person (F5).
 
-This works on any server without a server mod, through a small Lyricraft online service. Your Minecraft login never leaves the game: Lyricraft proves who you are the same way joining a server does. Only your song, artist and current line are shared, and only with players who can see you.
+This works on any server without a server mod, through a small Lyricraft online service. Your Minecraft login never leaves the game: Lyricraft proves who you are the same way joining a server does. Only your song, artist and current line are shared, and only with players who are on the same server as you (you both see each other in the tab list). Nobody can look you up from elsewhere, and nothing is stored. Other players never see your IP address.
 
 Everything is in the **Online** tab: turn sharing off to only show the badge, hide other players' lyrics, or switch the online part off completely.
 

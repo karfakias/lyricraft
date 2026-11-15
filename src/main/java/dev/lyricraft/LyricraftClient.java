@@ -99,7 +99,7 @@ public final class LyricraftClient implements ClientModInitializer {
 		lyricsFor = key;
 		lyrics = null;
 		fetcher.fetch(track).thenAccept(result -> {
-			LOG.info("Lyricraft: now playing '{}' by '{}' ({}), lyrics: {}", track.title(), track.artist(), track.app(), result.kind);
+			LOG.debug("Lyricraft: now playing '{}' by '{}' ({}), lyrics: {}", track.title(), track.artist(), track.app(), result.kind);
 			if (key.equals(lyricsFor)) lyrics = result;
 		});
 	}
