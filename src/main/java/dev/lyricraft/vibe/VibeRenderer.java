@@ -2,6 +2,7 @@ package dev.lyricraft.vibe;
 
 import dev.lyricraft.Config;
 import dev.lyricraft.hud.Draw;
+import dev.lyricraft.hud.Sprites;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 /**
@@ -39,8 +40,7 @@ public final class VibeRenderer {
 		// 3) aurora ribbons across the top
 		if (cfg.vibeAurora) {
 			float auroraA = (full ? 0.24f : 0.08f) * k;
-			drawAurora(g, w, h, time, a, auroraA * (1f + pulse * 0.6f), 0.9f, 0f);
-			drawAurora(g, w, h, time, b, auroraA * 0.8f, 1.35f, 2.1f);
+			drawAurora(g, w, h, time, a, b, auroraA * (1f + pulse * 0.6f), auroraA * 0.8f);
 		}
 
 		// 4) equalizer bars beside the hotbar
@@ -52,29 +52,51 @@ public final class VibeRenderer {
 		int edge = Math.round(Math.min(w, h) * (full ? 0.22f : 0.16f));
 		g.fillGradient(0, 0, w, edge, Draw.argb(a, vigA * k), Draw.argb(a, 0f));
 		g.fillGradient(0, h - edge, w, h, Draw.argb(b, 0f), Draw.argb(b, vigA * k));
-		int strips = 20;
-		float stripW = edge / (float) strips;
-		for (int i = 0; i < strips; i++) {
-			float f = 1f - i / (float) strips;
-			int col = Draw.argb(Draw.mix(a, b, 0.5f), vigA * f * f * k);
-			int x0 = Math.round(i * stripW), x1 = Math.round((i + 1) * stripW);
-			g.fill(x0, 0, x1, h, col);
-			g.fill(w - x1, 0, w - x0, h, col);
-		}
+		int col = Draw.argb(Draw.mix(a, b, 0.5f), vigA * k);
+		Sprites.draw(g, Sprites.edgeL(), 0, 0, edge, h, col);
+		Sprites.draw(g, Sprites.edgeR(), w - edge, 0, edge, h, col);
 	}
 
-	private static void drawAurora(GuiGraphicsExtractor g, int w, int h, float t, int rgb, float alpha, float speed, float phase) {
-		int step = 3;
-		float baseH = h * 0.16f;
-		for (int x = 0; x < w; x += step) {
-			float u = x / (float) w;
-			double wave = Math.sin(u * 7 + t * speed + phase) * 0.5
-					+ Math.sin(u * 13 - t * speed * 1.7 + phase * 2) * 0.3
-					+ Math.sin(u * 3 + t * 0.4) * 0.2;
-			float height = baseH * (0.55f + 0.45f * (float) wave);
-			float shimmer = 0.6f + 0.4f * (float) Math.sin(u * 40 + t * 3 + phase);
-			g.fillGradient(x, 0, x + step, Math.max(1, Math.round(height)), Draw.argb(rgb, alpha * shimmer), Draw.argb(rgb, 0f));
+	/** Aurora texture: a column per few pixels of screen, redrawn every frame (one quad on screen). */
+	private static final int AW = 160, AH = 48;
+	private Sprites.Tex aurora;
+	private long lastAurora;
+
+	private void drawAurora(GuiGraphicsExtractor g, int w, int h, float t, int ca, int cb, float alphaA, float alphaB) {
+		if (aurora == null) aurora = Sprites.make("aurora", AW, AH, false, (x, y) -> 0);
+		var img = aurora.getPixels();
+		if (img == null) return;
+		// it moves slowly, so ~40 updates a second is plenty even at 500+ fps
+		long nowNs = System.nanoTime();
+		if (nowNs - lastAurora < 25_000_000L) {
+			Sprites.draw(g, aurora, 0, 0, w, h * 0.16f, 0xFFFFFFFF);
+			return;
 		}
+		lastAurora = nowNs;
+		for (int x = 0; x < AW; x++) {
+			float u = x / (float) AW;
+			float hA = ribbon(u, t, 0.9f, 0f), hB = ribbon(u, t, 1.35f, 2.1f);
+			float sA = alphaA * (0.6f + 0.4f * (float) Math.sin(u * 40 + t * 3));
+			float sB = alphaB * (0.6f + 0.4f * (float) Math.sin(u * 40 + t * 3 + 2.1f));
+			for (int y = 0; y < AH; y++) {
+				float v = (y + 0.5f) / AH;
+				float a1 = v < hA ? sA * (1f - v / hA) : 0f;
+				float a2 = v < hB ? sB * (1f - v / hB) : 0f;
+				float out = a1 + a2 * (1f - a1);
+				int rgb = out <= 0.001f ? ca : Draw.mix(ca, cb, a2 * (1f - a1) / out);
+				img.setPixel(x, y, (Math.clamp(Math.round(out * 255f), 0, 255) << 24) | rgb);
+			}
+		}
+		aurora.upload();
+		Sprites.draw(g, aurora, 0, 0, w, h * 0.16f, 0xFFFFFFFF);
+	}
+
+	/** Ribbon height at u (0..1 of the texture height). */
+	private static float ribbon(float u, float t, float speed, float phase) {
+		double wave = Math.sin(u * 7 + t * speed + phase) * 0.5
+				+ Math.sin(u * 13 - t * speed * 1.7 + phase * 2) * 0.3
+				+ Math.sin(u * 3 + t * 0.4) * 0.2;
+		return Math.max(0.02f, 0.55f + 0.45f * (float) wave);
 	}
 
 	private static void drawEqualizer(GuiGraphicsExtractor g, int w, int h, float t, int a, int b, float pulse, float energy, float k) {
