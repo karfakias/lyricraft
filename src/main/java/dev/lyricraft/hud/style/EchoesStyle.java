@@ -324,6 +324,11 @@ public final class EchoesStyle implements LyricStyle {
 		float dim = current ? 1f : Math.max(0.3f, 0.62f - age / LIFETIME_S * 0.35f);
 		dim = 1f + (dim - 1f) * (current ? 0f : retired); // dims smoothly instead of snapping
 		float vis = f.vis() * fade(pn, now) * dim;
+		if (!current) {
+			// older lines further away fade into the background a bit
+			double d = pn.posNow(now).distanceTo(f.proj().cameraPos());
+			vis *= (float) Math.clamp(1.2 - d / 25.0, 0.45, 1.0);
+		}
 
 		float scale = pt.pxPerBlock() * TEXT_BLOCKS * f.cfg().scale / f.font().lineHeight;
 		scale = Math.min(scale, 4f);
@@ -383,6 +388,13 @@ public final class EchoesStyle implements LyricStyle {
 			// chorus lines get a warm gold edge and shine a bit more
 			acc = Draw.mix(acc, GOLD, current ? 0.55f : 0.35f);
 			glow *= 1.3f;
+		}
+		// soft shadow underneath so it looks like it's floating
+		int sw = ix1 - ix0, step = Math.max(1, Math.round(scale * 1.2f));
+		for (int i = 0; i < 4; i++) {
+			int in = Math.round(sw * (0.08f + i * 0.07f));
+			int y = iy1 + step * (1 + i);
+			g.fill(ix0 + in, y, ix1 - in, y + step, Draw.argb(0x000000, 0.13f * (1f - i / 4f) * vis));
 		}
 		GlassPanel.draw(g, ix0, iy0, ix1, iy1, f.colorA(), acc, vis * Math.min(1f, open + 0.3f), glow, pn.seed, f.time());
 
