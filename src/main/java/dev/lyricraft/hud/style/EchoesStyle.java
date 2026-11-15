@@ -70,6 +70,7 @@ public final class EchoesStyle implements LyricStyle {
 	private Object forLevel;
 	private int lastSlot = Integer.MIN_VALUE;
 	private float glitch;
+	private final List<float[]> drawnRects = new ArrayList<>();
 
 	@Override
 	public void render(Frame f) {
@@ -118,7 +119,10 @@ public final class EchoesStyle implements LyricStyle {
 		// far ones first so near ones draw on top
 		List<Panel> order = new ArrayList<>(panels);
 		order.sort(Comparator.comparingDouble((Panel pn) -> -pn.pos.distanceToSqr(cam)));
+		drawnRects.clear();
 		for (Panel pn : order) draw(f, pn, pn == newest, now);
+		// mark our panels as taken so friends' panels keep clear of them
+		for (float[] r : drawnRects) HudSpace.reserve(r[0], r[1], r[2], r[3]);
 	}
 
 	// ------------------------------------------------------------------ placement
@@ -183,6 +187,13 @@ public final class EchoesStyle implements LyricStyle {
 			}
 		}
 		panels.add(new Panel(slot, chosen, now, wBlocks, hBlocks));
+		// let nearby Lyricraft friends see this panel in the same spot (if you share your Echoes)
+		var mc = Minecraft.getInstance();
+		var mod = dev.lyricraft.LyricraftClient.get();
+		if (mod != null && mc.level != null) {
+			mod.online.sendEcho(chosen.x, chosen.y, chosen.z, mc.level.dimension().identifier().toString(),
+					line.text(), line.durationMs(), f.posMs() - line.startMs(), wBlocks, hBlocks);
+		}
 	}
 
 	private static Rect rectOf(Projector p, Vec3 pos, float wBlocks, float hBlocks) {
@@ -256,6 +267,7 @@ public final class EchoesStyle implements LyricStyle {
 
 		// echoes that drift behind the Now Playing card / hotbar get see-through instead of covering them
 		float covered = HudSpace.covered(ix0, iy0, ix1, iy1);
+		if (vis > 0.15f) drawnRects.add(new float[]{ix0 - 2, iy0 - 2, ix1 + 2, iy1 + 2});
 		pn.coverFade = Draw.approach(pn.coverFade, 1f - covered * 0.8f, f.dt() * 4f);
 		vis *= pn.coverFade;
 		if (vis < 0.02f) return;

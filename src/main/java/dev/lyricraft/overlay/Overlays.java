@@ -128,7 +128,7 @@ public final class Overlays {
 		g.disableScissor();
 		g.text(font, Draw.ellipsize(font, track.artist(), maxW), tx, 22, Draw.argb(0xB3B3B3, k), false);
 		String clock = fmt(mod.tracker.positionMs()) + " / " + fmt(track.durationMs());
-		g.text(font, (playing ? "▶ " : "❚❚ ") + time, tx, 36, Draw.argb(a, k), false);
+		g.text(font, (playing ? "▶ " : "❚❚ ") + clock, tx, 36, Draw.argb(a, k), false);
 		g.fill(tx, 50, tx + maxW, 52, Draw.argb(0x3A3A3A, k));
 		g.fill(tx, 50, tx + Math.round(maxW * progress), 52, Draw.argb(a, k));
 	}

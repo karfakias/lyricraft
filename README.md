@@ -13,6 +13,7 @@ You don't log in to anything. Put the jar in your mods folder, play a song on Sp
 - Overlays like a vinyl player, cassette, VHS filter, lo-fi rain and confetti
 - Fixes its own timing as it goes, and remembers if you nudge a song earlier or later
 - Client-side only, so it works on any server
+- See who else uses Lyricraft: a green ♫ after their name, and the line they're hearing floating above their head
 
 Press **N** in game to open the settings. If you have Mod Menu installed, it's also under the Config button there. You can drag the card and the lyrics around the screen right from that menu.
 
@@ -43,6 +44,16 @@ Lyricraft can't actually hear the music, but it knows when each word is sung, so
 Press **H** to switch overlays. They're extra decoration that works alongside any style:
 
 Vinyl, Cassette, VHS, Synthwave, Visualizer, Lo-fi Rain, Starry Night, Oscilloscope, Confetti.
+
+## Playing with friends
+
+Players who use Lyricraft get a green ♫ after their name, in the tab list and above their head. If they're listening to something, the line they're hearing right now floats above their head, filling in as it's sung, with the song name under it. Yours shows to them too, and you can see your own in third person (F5).
+
+If a friend near you uses the Echoes style, you see their panels too, in the same spots in the world, with their name and their own colour. They only show for players close by (48 blocks) in the same world, at most 12 at a time, and they never cover your own panels or each other: they slide out of the way, or stay hidden if there's no room.
+
+This works on any server without a server mod, through a small Lyricraft online service. Your Minecraft login never leaves the game: Lyricraft proves who you are the same way joining a server does. Only your song, artist, current line and where your Echoes panels are placed are shared, and only with players who are on the same server as you (you both see each other in the tab list). Nobody can look you up from elsewhere, and nothing is stored. Other players never see your IP address.
+
+Everything is in the **Online** tab: turn sharing off to only show the badge, stop sharing your Echoes, hide other players' lyrics or Echoes, or switch the online part off completely.
 
 ## Timing
 
@@ -92,7 +103,7 @@ LRCLIB doesn't have every song yet, especially new or less popular ones. You can
 The Spotify app always wins. If that isn't open, it uses whichever browser tab is playing.
 
 **Will a server know I'm using it?**
-No. It only runs on your side.
+No. It only runs on your side. Other Lyricraft players can see your badge, though, unless you switch Online features off.
 
 ## Requirements
 

@@ -35,7 +35,16 @@ public final class CoverArt {
 	private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
 
 	/** Cover for this track, or {@code null} if there isn't one (yet). */
+	private static volatile Cover demo;
+
+	/** A made-up cover for the demo song (screenshots/tests); null image clears it. */
+	public static void showDemo(String trackKey, BufferedImage image) {
+		demo = image == null ? null : shrink(trackKey, image);
+	}
+
 	public static Cover get(String trackKey) {
+		Cover d = demo;
+		if (d != null && d.trackKey.equals(trackKey)) return d;
 		Cover c = current;
 		return c != null && c.trackKey.equals(trackKey) ? c : null;
 	}
@@ -50,7 +59,7 @@ public final class CoverArt {
 			try {
 				byte[] bytes = read(source);
 				if (bytes == null || bytes.length == 0) return;
-				BufferedImage img = ImageIO.read(new ByteArrayInputStream(bytes));
+				BufferedImage img = decodeSafely(bytes);
 				if (img == null) return;
 				Cover cover = shrink(trackKey, img);
 				if (trackKey.equals(requestedKey)) current = cover;
@@ -60,14 +69,40 @@ public final class CoverArt {
 		});
 	}
 
+	/** Album covers are a few hundred KB; refuse anything silly. */
+	private static final int MAX_BYTES = 8 * 1024 * 1024, MAX_SIDE = 4096;
+
 	private static byte[] read(String source) throws Exception {
 		if (source.startsWith("http://") || source.startsWith("https://")) {
 			HttpRequest req = HttpRequest.newBuilder(URI.create(source)).timeout(Duration.ofSeconds(8)).GET().build();
-			HttpResponse<byte[]> res = HTTP.send(req, HttpResponse.BodyHandlers.ofByteArray());
-			return res.statusCode() == 200 ? res.body() : null;
+			HttpResponse<java.io.InputStream> res = HTTP.send(req, HttpResponse.BodyHandlers.ofInputStream());
+			try (java.io.InputStream in = res.body()) {
+				if (res.statusCode() != 200) return null;
+				byte[] data = in.readNBytes(MAX_BYTES + 1);
+				return data.length > MAX_BYTES ? null : data;
+			}
 		}
 		Path p = source.startsWith("file:") ? Path.of(URI.create(source)) : Path.of(source);
-		return Files.exists(p) ? Files.readAllBytes(p) : null;
+		if (!Files.isRegularFile(p) || Files.size(p) > MAX_BYTES) return null;
+		return Files.readAllBytes(p);
+	}
+
+	/** Reads the image size first and only decodes sensible ones (stops "image bomb" files). */
+	private static BufferedImage decodeSafely(byte[] bytes) throws Exception {
+		try (javax.imageio.stream.ImageInputStream in = ImageIO.createImageInputStream(new ByteArrayInputStream(bytes))) {
+			if (in == null) return null;
+			java.util.Iterator<javax.imageio.ImageReader> readers = ImageIO.getImageReaders(in);
+			if (!readers.hasNext()) return null;
+			javax.imageio.ImageReader reader = readers.next();
+			try {
+				reader.setInput(in, true, true);
+				int w = reader.getWidth(0), h = reader.getHeight(0);
+				if (w <= 0 || h <= 0 || w > MAX_SIDE || h > MAX_SIDE) return null;
+				return reader.read(0);
+			} finally {
+				reader.dispose();
+			}
+		}
 	}
 
 	private static Cover shrink(String key, BufferedImage img) {

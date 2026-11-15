@@ -1,0 +1,13 @@
+{
+  "name": "lyricraft-server",
+  "private": true,
+  "description": "Online service for Lyricraft: player badges and shared lyrics",
+  "scripts": {
+    "dev": "wrangler dev --var DEV:1",
+    "deploy": "wrangler deploy",
+    "test": "node test/two-players.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.40.0"
+  }
+}

@@ -25,6 +25,7 @@ public final class LyricraftClientGameTest implements FabricClientGameTest {
 
 	@Override
 	public void runTest(ClientGameTestContext ctx) {
+		if ("1".equals(System.getenv("LYRICRAFT_GALLERY"))) return; // gallery run only
 		try (TestSingleplayerContext world = ctx.worldBuilder().create()) {
 			world.getConnection().waitForChunksRender();
 			Config cfg = LyricraftClient.get().config;
@@ -199,6 +200,104 @@ public final class LyricraftClientGameTest implements FabricClientGameTest {
 				ctx.setScreen(() -> null);
 			}
 
+			// ---------------------------------------------------------- online (needs a local service: cd server && npm run dev)
+			String local = System.getProperty("lyricraft.testServer", "http://127.0.0.1:8787");
+			boolean serviceUp;
+			try (var s = new java.net.Socket()) {
+				s.connect(new java.net.InetSocketAddress("127.0.0.1", 8787), 500);
+				serviceUp = true;
+			} catch (Exception e) {
+				serviceUp = false;
+			}
+			if (serviceUp) {
+				ctx.runOnClient(mc -> {
+					cfg.onlineServer = local;
+					cfg.online = true;
+					cfg.shareLyrics = true;
+					cfg.showBadges = true;
+					cfg.showOthersLyrics = true;
+				});
+				ctx.waitFor(mc -> LyricraftClient.get().online.status() == dev.lyricraft.online.OnlineClient.Status.ONLINE, 300);
+				ctx.waitTicks(60); // watch list + our own state come back
+				java.util.UUID me = ctx.computeOnClient(mc -> mc.player.getUUID());
+				check(ctx.computeOnClient(mc -> LyricraftClient.get().online.usesMod(me)), "connected and we show up as a Lyricraft player");
+				String tabName = ctx.computeOnClient(mc -> mc.gui.hud.getTabList()
+						.getNameForDisplay(mc.getConnection().getPlayerInfo(me)).getString());
+				log("tab list name: " + tabName);
+				check(tabName.endsWith("♫"), "the tab list shows the ♫ badge");
+				String tag = ctx.computeOnClient(mc -> {
+					try {
+						var renderer = mc.getEntityRenderDispatcher().getRenderer(mc.player);
+						var m = net.minecraft.client.renderer.entity.EntityRenderer.class.getDeclaredMethod("getNameTag", net.minecraft.world.entity.Entity.class);
+						m.setAccessible(true);
+						Object c = m.invoke(renderer, mc.player);
+						return c == null ? "" : ((net.minecraft.network.chat.Component) c).getString();
+					} catch (ReflectiveOperationException e) {
+						return "error: " + e;
+					}
+				});
+				log("name tag: " + tag);
+				check(tag.endsWith("♫"), "the name tag shows the ♫ badge");
+				if (ctx.computeOnClient(mc -> LyricraftClient.get().tracker.isPlaying())) { // shared only while playing
+					ctx.waitFor(mc -> {
+						var r = LyricraftClient.get().online.remote(me);
+						return r != null && r.song() != null;
+					}, 200);
+					var r = ctx.computeOnClient(mc -> LyricraftClient.get().online.remote(me));
+					log("shared state came back: song='" + r.song() + "' line='" + r.line() + "'");
+					check(r.song() != null, "our song comes back from the service");
+				}
+				ctx.getInput().holdKey(o -> o.keyPlayerList);
+				ctx.waitTicks(5);
+				ctx.takeScreenshot("lyricraft-10-tab-badge");
+				ctx.getInput().releaseKey(o -> o.keyPlayerList);
+				ctx.runOnClient(mc -> mc.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_FRONT));
+				ctx.waitTicks(40);
+				ctx.takeScreenshot("lyricraft-11-lyrics-above-head");
+				ctx.runOnClient(mc -> mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON));
+				ctx.setScreen(() -> new LyricraftScreen(LyricraftClient.get(), null));
+				ctx.waitTicks(5);
+				clickWidget(ctx, "Online");
+				ctx.waitTicks(5);
+				ctx.takeScreenshot("lyricraft-12-online-tab");
+				ctx.setScreen(() -> null);
+			} else {
+				log("no local online service on :8787: skipped the online checks");
+			}
+
+			// ---------------------------------------------------------- friends' Echoes panels
+			// (demo panels: this switches the online client into demo mode, so it runs after the online checks)
+			ctx.runOnClient(mc -> {
+				cfg.showOthersEchoes = true;
+				var on = LyricraftClient.get().online;
+				var look = mc.player.getLookAngle();
+				double bx = mc.player.getX() + look.x * 5, by = mc.player.getEyeY(), bz = mc.player.getZ() + look.z * 5;
+				String dim = mc.level.dimension().identifier().toString();
+				String[] lines = {"we were singing in the rain", "under the glass harbor lights", "hold on to the night", "and the city hums along"};
+				// five friends all dropping panels on almost the same spot: 20 sent, the caps keep 16, at most 12 drawn
+				for (int f = 0; f < 5; f++) {
+					java.util.UUID id = new java.util.UUID(0x5eed, f + 1);
+					for (int i = 0; i < 4; i++)
+						on.addDemoEcho(id, bx + f * 0.05, by + i * 0.05, bz, dim, lines[(f + i) % lines.length], 4000, 500L * i, 2.5f, 0.4f);
+				}
+				// one in another dimension, which must never show
+				on.addDemoEcho(new java.util.UUID(0x5eed, 99), bx, by, bz, "minecraft:the_nether", "wrong world", 4000, 0, 2.5f, 0.4f);
+			});
+			ctx.waitTicks(60);
+			int stored = ctx.computeOnClient(mc -> LyricraftClient.get().online.echoes().size());
+			check(stored <= dev.lyricraft.online.OnlineClient.ECHOES_TOTAL, "friends' panels are capped (" + stored + " kept)");
+			var placed = ctx.computeOnClient(mc -> dev.lyricraft.hud.RemoteEchoes.placedLastFrame());
+			log("friends' panels drawn: " + placed.size());
+			check(!placed.isEmpty() && placed.size() <= 12, "some friends' panels are drawn, at most 12");
+			boolean overlap = false;
+			for (int i = 0; i < placed.size(); i++)
+				for (int j = i + 1; j < placed.size(); j++) {
+					float[] p = placed.get(i), q = placed.get(j);
+					if (p[0] < q[2] && q[0] < p[2] && p[1] < q[3] && q[1] < p[3]) overlap = true;
+				}
+			check(!overlap, "friends' panels never overlap each other");
+			ctx.takeScreenshot("lyricraft-13-friends-echoes");
+
 			// ---------------------------------------------------------- every look and theme
 			ctx.runOnClient(mc -> {
 				cfg.cardX = 0f;
@@ -247,7 +346,7 @@ public final class LyricraftClientGameTest implements FabricClientGameTest {
 	}
 
 	/** Clicks one of our (custom) widgets by its label, with the real mouse. */
-	private static void clickWidget(ClientGameTestContext ctx, String label) {
+	static void clickWidget(ClientGameTestContext ctx, String label) {
 		float[] at = widgetCenter(ctx, label);
 		check(at != null, "widget '" + label + "' exists");
 		moveTo(ctx, at[0], at[1]);

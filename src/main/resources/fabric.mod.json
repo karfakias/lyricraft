@@ -4,10 +4,16 @@
 	"version": "${version}",
 	"name": "Lyricraft for Spotify",
 	"description": "Live, synced karaoke lyrics for whatever you're playing on Spotify. No login, client-side only.",
-	"authors": ["Lyricraft"],
+	"authors": ["karfakias"],
+	"contact": {
+		"homepage": "https://modrinth.com/mod/lyricraft-for-spotify",
+		"sources": "https://github.com/karfakias/lyricraft",
+		"issues": "https://github.com/karfakias/lyricraft/issues"
+	},
 	"license": "MIT",
 	"icon": "assets/lyricraft/icon.png",
 	"environment": "client",
+	"mixins": ["lyricraft.mixins.json"],
 	"entrypoints": {
 		"client": ["dev.lyricraft.LyricraftClient"],
 		"modmenu": ["dev.lyricraft.gui.ModMenuIntegration"]

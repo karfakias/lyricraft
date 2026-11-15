@@ -34,6 +34,7 @@ public final class LyricraftClient implements ClientModInitializer {
 	public final PlaybackTracker tracker = new PlaybackTracker();
 	public final SyncMemory sync = new SyncMemory(config);
 	public final VibeEngine vibe = new VibeEngine();
+	public final dev.lyricraft.online.OnlineClient online = new dev.lyricraft.online.OnlineClient(this);
 	private final LyricsFetcher fetcher = new LyricsFetcher(config);
 
 	/** Lyrics for the current track; {@code null} while loading. */
@@ -66,6 +67,7 @@ public final class LyricraftClient implements ClientModInitializer {
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			handleKeys();
+			online.tick(client);
 			tracker.setAutoSync(config.autoSync);
 			MediaSnapshot now = tracker.current();
 			vibe.tick(client, config, now, lyrics(), tracker.positionMs() - currentOffsetMs(),
@@ -92,12 +94,22 @@ public final class LyricraftClient implements ClientModInitializer {
 		if (now != null) loadLyrics(now);
 	}
 
+	/** Show a made-up song instead of what's really playing (for screenshots and tests). */
+	public void showDemo(MediaSnapshot track, Lyrics demoLyrics) {
+		tracker.setDemo(track);
+		if (track != null) {
+			lyricsFor = track.trackKey();
+			lyrics = demoLyrics;
+		}
+	}
+
 	private void loadLyrics(MediaSnapshot track) {
+		if (tracker.demoActive()) return;
 		String key = track.trackKey();
 		lyricsFor = key;
 		lyrics = null;
 		fetcher.fetch(track).thenAccept(result -> {
-			LOG.info("Lyricraft: now playing '{}' by '{}' ({}), lyrics: {}", track.title(), track.artist(), track.app(), result.kind);
+			LOG.debug("Lyricraft: now playing '{}' by '{}' ({}), lyrics: {}", track.title(), track.artist(), track.app(), result.kind);
 			if (key.equals(lyricsFor)) lyrics = result;
 		});
 	}

@@ -27,7 +27,7 @@ import java.util.function.Consumer;
  */
 public final class LyricraftScreen extends Screen implements LyricraftUi {
 
-	private enum Tab { STYLE, CARD, LYRICS, VIBE, OVERLAY, SYNC }
+	private enum Tab { STYLE, CARD, LYRICS, VIBE, OVERLAY, SYNC, ONLINE }
 
 	private static Tab lastTab = Tab.STYLE;
 	private static int lastScroll;
@@ -80,8 +80,8 @@ public final class LyricraftScreen extends Screen implements LyricraftUi {
 		labelText.clear();
 
 		// tab rail
-		String[] icons = {"✦", "▣", "♫", "☀", "◈", "↻"};
-		String[] names = {"Style", "Card", "Lyrics", "Vibe", "Overlay", "Sync"};
+		String[] icons = {"✦", "▣", "♫", "☀", "◈", "↻", "◉"};
+		String[] names = {"Style", "Card", "Lyrics", "Vibe", "Overlay", "Sync", "Online"};
 		Tab[] tabs = Tab.values();
 		for (int i = 0; i < tabs.length; i++) {
 			Tab t = tabs[i];
@@ -103,6 +103,7 @@ public final class LyricraftScreen extends Screen implements LyricraftUi {
 			case VIBE -> y = vibeTab(y);
 			case OVERLAY -> y = overlayTab(y);
 			case SYNC -> y = syncTab(y);
+			case ONLINE -> y = onlineTab(y);
 		}
 		infoBaseY = y + 4;
 		String longest = info.isEmpty() ? longestInfo() : info;
@@ -358,6 +359,53 @@ public final class LyricraftScreen extends Screen implements LyricraftUi {
 		return y;
 	}
 
+	private int onlineNumbersY;
+
+	private int onlineTab(int y) {
+		int cw = cx1 - cx0;
+		toggle(cx0, y, cw, "Online features", () -> cfg().online, v -> {
+			cfg().online = v;
+			mod.online.refresh();
+		}, "See which players use Lyricraft too, and what they're listening to. Connects to the Lyricraft online service.");
+		y += 22;
+		toggle(cx0, y, cw, "Share what I'm listening to", () -> cfg().shareLyrics, v -> {
+			cfg().shareLyrics = v;
+			mod.online.refresh();
+		}, "Players near you who use Lyricraft see your song and the line you're hearing above your head. Turn off to only show the badge.");
+		y += 22;
+		toggle(cx0, y, cw, "Show ♫ badges", () -> cfg().showBadges, v -> cfg().showBadges = v,
+				"A green ♫ after the names of Lyricraft players, in the tab list and above their heads.");
+		y += 22;
+		toggle(cx0, y, cw, "Show other players' lyrics", () -> cfg().showOthersLyrics, v -> cfg().showOthersLyrics = v,
+				"Their current line and song, floating above their head.");
+		y += 22;
+		toggle(cx0, y, cw, "Share my Echoes", () -> cfg().shareEchoes, v -> cfg().shareEchoes = v,
+				"When you use the Echoes style, nearby Lyricraft players see your panels in the same spots. Needs \"Share what I'm listening to\".");
+		y += 22;
+		toggle(cx0, y, cw, "Show other players' Echoes", () -> cfg().showOthersEchoes, v -> cfg().showOthersEchoes = v,
+				"See the Echoes panels of Lyricraft players near you, with their name. They never cover your own.");
+		y += 26;
+		onlineNumbersY = y;
+		y += 2 * 12 + 4;
+		info = "Works on any server, no server mod needed. Your login never leaves the game: Lyricraft proves who you are the same way joining a server does. "
+				+ "Only your song, artist and current line are shared, and only while you play.";
+		return y;
+	}
+
+	private void onlineNumbers(GuiGraphicsExtractor g, int y, int acc) {
+		dev.lyricraft.online.OnlineClient.Status st = mod.online.status();
+		String status = switch (st) {
+			case OFF -> "Off";
+			case NOT_SET_UP -> "Not set up yet (no service address)";
+			case CONNECTING -> "Connecting...";
+			case ONLINE -> "Online";
+			case OFFLINE -> minecraft.level == null ? "Join a world to connect" : "Can't reach the service, retrying";
+			case NOT_VERIFIED -> "Couldn't verify your Minecraft account";
+		};
+		row(g, "Status", status, y, st == dev.lyricraft.online.OnlineClient.Status.ONLINE ? acc : 0xB8B8C0);
+		row(g, "Players here", st == dev.lyricraft.online.OnlineClient.Status.ONLINE ? mod.online.othersOnline() + " use Lyricraft" : "-", y + 12, acc);
+	}
+
 	/** How much of this song's timing is about the song itself (not your headphones). */
 	private int songFix() {
 		MediaSnapshot now = mod.tracker.current();
@@ -441,6 +489,7 @@ public final class LyricraftScreen extends Screen implements LyricraftUi {
 		}
 		int iy = infoBaseY - scroll;
 		if (tab == Tab.SYNC) syncNumbers(g, syncNumbersY - scroll, acc);
+		if (tab == Tab.ONLINE) onlineNumbers(g, onlineNumbersY - scroll, acc);
 		String text = info;
 		for (GuiEventListener l : children()) {
 			if (l instanceof Widgets.Chip chip && chip.visible && chip.isHovered()) text = chip.info;
