@@ -304,30 +304,31 @@ public final class NowPlayingCard {
 		g.pose().popMatrix();
 	}
 
+	/** The cover as a texture (square and round versions), made once per song instead of a fill per pixel run. */
+	private static final java.util.Map<String, Sprites.Tex> COVER_TEX = new java.util.LinkedHashMap<>(8, 0.75f, true);
+
 	private static void drawPixels(GuiGraphicsExtractor g, CoverArt.Cover cover, int size, float a, boolean round) {
-		int n = CoverArt.SIZE;
-		g.pose().pushMatrix();
-		g.pose().scale(size / (float) n, size / (float) n);
-		int[] px = cover.pixels();
-		int alpha = Math.clamp(Math.round(a * 255f), 0, 255) << 24;
-		float c = n / 2f;
-		for (int y = 0; y < n; y++) {
-			int row = y * n, from = 0, to = n;
-			if (round) {
-				float dy = y + 0.5f - c, half = (float) Math.sqrt(Math.max(0, c * c - dy * dy));
-				from = Math.round(c - half);
-				to = Math.round(c + half);
-				if (to <= from) continue;
-			}
-			int start = from;
-			for (int x = from + 1; x <= to; x++) {
-				if (x == to || px[row + x] != px[row + start]) {
-					g.fill(start, y, x, y + 1, alpha | px[row + start]);
-					start = x;
-				}
+		String key = (round ? "r|" : "s|") + cover.trackKey() + "|" + System.identityHashCode(cover);
+		Sprites.Tex t = COVER_TEX.get(key);
+		if (t == null) {
+			int n = CoverArt.SIZE;
+			int[] px = cover.pixels();
+			float c = n / 2f;
+			t = Sprites.make("cover_" + Integer.toHexString(key.hashCode()) + (round ? "_r" : "_s"), n, n, false, (x, y) -> {
+				int rgb = px[y * n + x] & 0xFFFFFF;
+				if (!round) return 0xFF000000 | rgb;
+				float dx = x + 0.5f - c, dy = y + 0.5f - c;
+				float edge = Math.clamp(c - (float) Math.sqrt(dx * dx + dy * dy) + 0.5f, 0f, 1f);
+				return (Math.round(edge * 255f) << 24) | rgb;
+			});
+			COVER_TEX.put(key, t);
+			if (COVER_TEX.size() > 4) {
+				var it = COVER_TEX.entrySet().iterator();
+				it.next().getValue().release();
+				it.remove();
 			}
 		}
-		g.pose().popMatrix();
+		Sprites.draw(g, t, 0, 0, size, size, Draw.argb(0xFFFFFF, a));
 	}
 
 	private void vinyl(Ctx c, float cx, float cy, float r) {

@@ -39,30 +39,16 @@ public final class Draw {
 
 	// ------------------------------------------------------------ shapes (pixel-style)
 
-	/** Filled circle drawn row by row; looks nicely pixel-art at GUI scale. */
+	/** Filled circle (one textured quad). */
 	public static void circle(GuiGraphicsExtractor g, float cx, float cy, float r, int color) {
-		ring(g, cx, cy, r, 0, color);
+		if ((color >>> 24) < 2 || r <= 0) return;
+		Sprites.circle(g, cx, cy, r, color);
 	}
 
-	/** Filled ring between {@code inner} and {@code outer} radius. */
+	/** Filled ring between {@code inner} and {@code outer} radius (one textured quad). */
 	public static void ring(GuiGraphicsExtractor g, float cx, float cy, float outer, float inner, int color) {
 		if ((color >>> 24) < 2 || outer <= 0) return;
-		int r = (int) Math.ceil(outer);
-		for (int dy = -r; dy < r; dy++) {
-			float yc = dy + 0.5f;
-			float o2 = outer * outer - yc * yc;
-			if (o2 <= 0) continue;
-			int ox = Math.round((float) Math.sqrt(o2));
-			int y = Math.round(cy) + dy;
-			float i2 = inner * inner - yc * yc;
-			if (inner <= 0 || i2 <= 0) {
-				g.fill(Math.round(cx) - ox, y, Math.round(cx) + ox, y + 1, color);
-			} else {
-				int ix = Math.round((float) Math.sqrt(i2));
-				g.fill(Math.round(cx) - ox, y, Math.round(cx) - ix, y + 1, color);
-				g.fill(Math.round(cx) + ix, y, Math.round(cx) + ox, y + 1, color);
-			}
-		}
+		Sprites.ring(g, cx, cy, outer, inner, color);
 	}
 
 	/** A straight line of the given thickness between two points (any angle). */
@@ -106,15 +92,12 @@ public final class Draw {
 		g.pose().popMatrix();
 	}
 
-	/** Text with a soft coloured halo (drawn as faint offset copies). */
+	/** Text with a soft coloured halo behind it (one glow quad, not extra copies of the text). */
 	public static void glowText(GuiGraphicsExtractor g, Font font, String text, float x, float y, float scale, int rgb, float alpha, float glow) {
-		if (glow > 0.01f) {
-			float o = Math.max(0.6f, scale * 0.9f);
-			int halo = argb(rgb, alpha * glow * 0.22f);
-			text(g, font, text, x - o, y, scale, halo, false);
-			text(g, font, text, x + o, y, scale, halo, false);
-			text(g, font, text, x, y - o, scale, halo, false);
-			text(g, font, text, x, y + o, scale, halo, false);
+		if (glow > 0.01f && alpha > 0.02f) {
+			float w = font.width(text) * scale, h = font.lineHeight * scale;
+			float px = Math.max(4f, h * 0.9f), py = h * 0.7f;
+			Sprites.glow(g, x - px, y - py, w + px * 2, h + py * 2, argb(rgb, Math.min(1f, alpha * glow * 0.32f)));
 		}
 		text(g, font, text, x, y, scale, argb(rgb, alpha), true);
 	}
