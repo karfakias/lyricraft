@@ -154,7 +154,7 @@ public final class LyricsFetcher {
 				Lyrics lyrics = Lyrics.build(r.stamps(), durMs);
 				if (lyrics.kind == Lyrics.Kind.SYNCED) {
 					String src = String.join(" + ", r.sources().stream().sorted().toList());
-					LyricraftClient.LOG.info("Lyricraft: '{}' timed from {} version(s) ({}), {} found", t.title(),
+					LyricraftClient.LOG.debug("Lyricraft: '{}' timed from {} version(s) ({}), {} found", t.title(),
 							r.versionsUsed(), src, versions.size());
 					return lyrics.withInfo(r.versionsUsed(), src);
 				}
@@ -238,9 +238,12 @@ public final class LyricsFetcher {
 				.header("User-Agent", "Mozilla/5.0")
 				.header("Referer", "https://music.163.com/")
 				.GET().build();
-		HttpResponse<String> res = http.send(req, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-		if (res.statusCode() / 100 != 2) return null;
-		return JsonParser.parseString(res.body());
+		HttpResponse<java.io.InputStream> res = http.send(req, HttpResponse.BodyHandlers.ofInputStream());
+		if (res.statusCode() / 100 != 2) {
+			res.body().close();
+			return null;
+		}
+		return JsonParser.parseString(readCapped(res.body()));
 	}
 
 	// ------------------------------------------------------------------ helpers
@@ -251,10 +254,28 @@ public final class LyricsFetcher {
 				.header("User-Agent", userAgent())
 				.header("Accept", "application/json")
 				.GET().build();
-		HttpResponse<String> res = http.send(req, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-		if (res.statusCode() == 404) return null;
-		if (res.statusCode() / 100 != 2) throw new IllegalStateException("HTTP " + res.statusCode());
-		return JsonParser.parseString(res.body());
+		HttpResponse<java.io.InputStream> res = http.send(req, HttpResponse.BodyHandlers.ofInputStream());
+		if (res.statusCode() == 404) {
+			res.body().close();
+			return null;
+		}
+		if (res.statusCode() / 100 != 2) {
+			res.body().close();
+			throw new IllegalStateException("HTTP " + res.statusCode());
+		}
+		return JsonParser.parseString(readCapped(res.body()));
+	}
+
+	/** Most a lyrics answer can be; anything bigger is cut off (and then fails to parse safely). */
+	private static final int MAX_RESPONSE_BYTES = 3 * 1024 * 1024;
+
+	/** Reads a response body, but never more than {@link #MAX_RESPONSE_BYTES} into memory. */
+	static String readCapped(java.io.InputStream in) throws java.io.IOException {
+		try (in) {
+			byte[] data = in.readNBytes(MAX_RESPONSE_BYTES + 1);
+			if (data.length > MAX_RESPONSE_BYTES) throw new java.io.IOException("response too large");
+			return new String(data, StandardCharsets.UTF_8);
+		}
 	}
 
 	private static boolean hasText(JsonObject o, String key) {

@@ -33,6 +33,8 @@ public final class Consensus {
 	private static final long MAX_LINE_SPREAD_MS = 2500;
 	/** Don't spend forever on hugely popular songs. */
 	private static final int MAX_VERSIONS = 16;
+	/** No real song has more lines; keeps the line-by-line matching quick and small. */
+	private static final int MAX_LINES = 600;
 
 	/** One version of the lyrics: its timestamps in order. */
 	public record Version(List<Lyrics.Stamp> stamps, String source) {}
@@ -46,7 +48,7 @@ public final class Consensus {
 		List<List<Lyrics.Stamp>> sung = new ArrayList<>();
 		List<String[]> keys = new ArrayList<>();
 		for (Version v : versions) {
-			List<Lyrics.Stamp> lines = v.stamps().stream().filter(s -> !s.text().isEmpty()).toList();
+			List<Lyrics.Stamp> lines = v.stamps().stream().filter(s -> !s.text().isEmpty()).limit(MAX_LINES).toList();
 			sung.add(lines);
 			keys.add(lines.stream().map(s -> normalize(s.text())).toArray(String[]::new));
 		}

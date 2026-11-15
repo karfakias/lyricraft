@@ -52,6 +52,9 @@ public final class Lyrics {
 	private static final long MAX_LINE_MS = 7000;
 
 	private static final Pattern TIME = Pattern.compile("\\[(\\d{1,3}):(\\d{1,2})(?:[.:](\\d{1,3}))?]");
+	/** Limits for downloaded lyric files, so a broken or hostile file can't eat all the memory. */
+	private static final int MAX_LRC_CHARS = 400_000, MAX_STAMPS = 2000;
+
 	/** [offset:+300] — "everything in this file is 300 ms late, show it sooner". */
 	private static final Pattern OFFSET = Pattern.compile("(?i)^\\s*\\[offset:\\s*([+-]?\\d+)\\s*]");
 
@@ -88,6 +91,8 @@ public final class Lyrics {
 	/** Every timestamp in an LRC file, sorted, with the file's [offset:] already applied. */
 	public static List<Stamp> parseStamps(String lrc) {
 		List<Stamp> stamps = new ArrayList<>();
+		if (lrc == null) return stamps;
+		if (lrc.length() > MAX_LRC_CHARS) lrc = lrc.substring(0, MAX_LRC_CHARS); // no real song is this long
 		long offset = 0;
 		for (String raw : lrc.split("\\r?\\n")) {
 			Matcher off = OFFSET.matcher(raw);
@@ -115,8 +120,12 @@ public final class Lyrics {
 				textStart = m.end();
 			}
 			if (times.isEmpty()) continue;
-			String text = raw.substring(textStart).trim();
-			for (long t : times) stamps.add(new Stamp(t, text));
+			// text comes from the internet: strip colour codes and invisible characters
+			String text = dev.lyricraft.online.SafeText.clean(raw.substring(textStart), 300);
+			for (long t : times) {
+				if (stamps.size() >= MAX_STAMPS) break;
+				stamps.add(new Stamp(Math.min(t, 24 * 3_600_000L), text));
+			}
 		}
 		if (offset != 0) {
 			// a positive offset means the lyrics should appear sooner

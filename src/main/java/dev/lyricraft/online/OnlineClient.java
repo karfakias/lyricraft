@@ -59,6 +59,7 @@ public final class OnlineClient {
 	private long retryAt;
 	private long backoffMs = 3000;
 	private int ticks;
+	private String lastUrl;
 	private Set<String> lastWatch = Set.of();
 	private String lastStateKey = "";
 	private long lastStateSent;
@@ -94,6 +95,14 @@ public final class OnlineClient {
 		Config cfg = mod.config;
 		boolean wanted = cfg.online && mc.level != null && mc.player != null;
 		String url = serverUrl(cfg);
+		if (url != null && !url.equals(lastUrl)) {
+			// a different service: start fresh instead of waiting out the old one's retry timer
+			lastUrl = url;
+			disconnect();
+			retryAt = 0;
+			backoffMs = 3000;
+			if (status == Status.NOT_VERIFIED) status = Status.OFFLINE;
+		}
 		if (!wanted || url == null) {
 			if (socket != null || status == Status.ONLINE || status == Status.CONNECTING) disconnect();
 			status = !cfg.online ? Status.OFF : url == null ? Status.NOT_SET_UP : Status.OFFLINE;
@@ -113,31 +122,13 @@ public final class OnlineClient {
 	private void connect(Minecraft mc, String url) {
 		connecting = true;
 		status = Status.CONNECTING;
-		User user = mc.getUser();
 		Thread t = new Thread(() -> {
 			try {
-				byte[] rnd = new byte[20];
-				new SecureRandom().nextBytes(rnd);
-				String serverId = HexFormat.of().formatHex(rnd);
-				try {
-					// the same call the game makes when you join a server; only Mojang sees your login
-					mc.services().sessionService().joinServer(user.getProfileId(), user.getAccessToken(), serverId);
-				} catch (Exception e) {
-					// offline / dev accounts can't do this; the service will refuse them (unless it's a local test server)
-					LyricraftClient.LOG.debug("Lyricraft online: Mojang join failed: {}", e.toString());
-				}
-				WebSocket ws = http.newWebSocketBuilder()
+				socket = http.newWebSocketBuilder()
 						.connectTimeout(Duration.ofSeconds(8))
 						.buildAsync(URI.create(url), new Listener())
 						.join();
-				socket = ws;
-				JsonObject hello = new JsonObject();
-				hello.addProperty("t", "hello");
-				hello.addProperty("name", user.getName());
-				hello.addProperty("serverId", serverId);
-				hello.addProperty("devId", user.getProfileId().toString()); // only used by local test servers
-				hello.addProperty("v", LyricraftClient.VERSION);
-				ws.sendText(hello.toString(), true);
+				// the service now sends a one-time challenge; we log in when it arrives (see login())
 			} catch (Exception e) {
 				LyricraftClient.LOG.debug("Lyricraft online: couldn't connect: {}", e.toString());
 				failed();
@@ -147,6 +138,55 @@ public final class OnlineClient {
 		}, "Lyricraft online");
 		t.setDaemon(true);
 		t.start();
+	}
+
+	/**
+	 * Prove who we are for this connection's challenge. We tell Mojang "I'm joining server
+	 * sha1(lyricraft:challenge)" (the same call the game makes when you join a server, and the
+	 * only place your login is sent). The service then asks Mojang which account did that.
+	 * Tying it to the service's own challenge means a login code captured by some Minecraft
+	 * server can't be reused to pretend to be you.
+	 */
+	private void login(WebSocket ws, String nonce) {
+		Minecraft mc = Minecraft.getInstance();
+		User user = mc.getUser();
+		Thread t = new Thread(() -> {
+			try {
+				String serverId = serverIdFor(nonce);
+				try {
+					mc.services().sessionService().joinServer(user.getProfileId(), user.getAccessToken(), serverId);
+				} catch (Exception e) {
+					// offline / dev accounts can't do this; the service will refuse them
+					LyricraftClient.LOG.debug("Lyricraft online: Mojang join failed: {}", e.toString());
+				}
+				JsonObject hello = new JsonObject();
+				hello.addProperty("t", "hello");
+				hello.addProperty("name", user.getName());
+				hello.addProperty("v", LyricraftClient.VERSION);
+				// test shortcut: only ever sent to a test service on this computer
+				if (isLocal(mod.config)) hello.addProperty("devId", user.getProfileId().toString());
+				ws.sendText(hello.toString(), true);
+			} catch (Exception e) {
+				LyricraftClient.LOG.debug("Lyricraft online: login failed: {}", e.toString());
+			}
+		}, "Lyricraft online login");
+		t.setDaemon(true);
+		t.start();
+	}
+
+	static String serverIdFor(String nonce) throws Exception {
+		byte[] hash = java.security.MessageDigest.getInstance("SHA-1")
+				.digest(("lyricraft:" + nonce).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+		return HexFormat.of().formatHex(hash);
+	}
+
+	private static boolean isLocal(Config cfg) {
+		try {
+			String host = URI.create(cfg.onlineServer.trim()).getHost();
+			return "127.0.0.1".equals(host) || "localhost".equals(host) || "[::1]".equals(host);
+		} catch (Exception e) {
+			return false;
+		}
 	}
 
 	private void failed() {
@@ -169,6 +209,7 @@ public final class OnlineClient {
 	/** Send our state right away (after changing a sharing setting). */
 	public void refresh() {
 		lastStateKey = "";
+		retryAt = 0; // try again right away after changing a setting
 		if (!mod.config.online) disconnect();
 	}
 
@@ -248,9 +289,14 @@ public final class OnlineClient {
 
 	// ------------------------------------------------------------------ incoming
 
-	private void handle(JsonObject m) {
+	private void handle(JsonObject m, WebSocket from) {
 		String t = m.has("t") ? m.get("t").getAsString() : "";
 		switch (t) {
+			case "challenge" -> {
+				String nonce = m.has("nonce") ? m.get("nonce").getAsString() : "";
+				// answer on the connection it came from (it can arrive before we've stored the socket)
+				if (nonce.matches("[0-9a-f]{16,128}")) login(from, nonce);
+			}
 			case "welcome" -> {
 				myId = UUID.fromString(m.get("id").getAsString());
 				status = Status.ONLINE;
@@ -280,24 +326,34 @@ public final class OnlineClient {
 			return;
 		}
 		JsonObject o = s.getAsJsonObject();
-		remotes.put(id, new Remote(id, str(o, "song"), str(o, "artist"), str(o, "line"),
-				o.has("dur") ? o.get("dur").getAsLong() : 0, o.has("elapsed") ? o.get("elapsed").getAsLong() : 0, System.nanoTime()));
+		long dur = o.has("dur") ? Math.clamp(o.get("dur").getAsLong(), 0, 60_000) : 0;
+		long elapsed = o.has("elapsed") ? Math.clamp(o.get("elapsed").getAsLong(), 0, 60_000) : 0;
+		if (remotes.size() > 500 && !remotes.containsKey(id)) return; // never grow without bound
+		remotes.put(id, new Remote(id, str(o, "song"), str(o, "artist"), str(o, "line"), dur, elapsed, System.nanoTime()));
 	}
 
+	/** Text from other players, cleaned again here (never trust the network). */
 	private static String str(JsonObject o, String k) {
-		return o.has(k) && !o.get(k).isJsonNull() ? o.get(k).getAsString() : null;
+		if (!o.has(k) || o.get(k).isJsonNull() || !o.get(k).isJsonPrimitive()) return null;
+		String t = SafeText.clean(o.get(k).getAsString(), 200);
+		return t.isEmpty() ? null : t;
 	}
 
 	private final class Listener implements WebSocket.Listener {
 		@Override
 		public CompletionStage<?> onText(WebSocket ws, CharSequence data, boolean last) {
 			partial.append(data);
+			if (partial.length() > 64_000) { // a sane service never sends this much at once
+				partial.setLength(0);
+				ws.request(1);
+				return null;
+			}
 			if (last) {
 				String text = partial.toString();
 				partial.setLength(0);
 				try {
 					JsonElement el = JsonParser.parseString(text);
-					if (el.isJsonObject()) handle(el.getAsJsonObject());
+					if (el.isJsonObject()) handle(el.getAsJsonObject(), ws);
 				} catch (Exception e) {
 					LyricraftClient.LOG.debug("Lyricraft online: bad message: {}", e.toString());
 				}

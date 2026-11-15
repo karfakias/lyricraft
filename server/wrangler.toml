@@ -3,6 +3,10 @@ name = "lyricraft"
 main = "src/index.js"
 compatibility_date = "2026-10-01"
 
+# No request or console logs are kept (the service doesn't log anything anyway)
+[observability]
+enabled = false
+
 [[durable_objects.bindings]]
 name = "HUB"
 class_name = "Hub"
