@@ -163,6 +163,10 @@ public final class LyricraftClientGameTest implements FabricClientGameTest {
 				ctx.waitTicks(20);
 				check(ctx.computeOnClient(mc -> NowPlayingCard.drawnRecently()), "the card stays visible while chat is open");
 				ctx.takeScreenshot("lyricraft-06b-chat-open");
+				ctx.setScreen(() -> new net.minecraft.client.gui.screens.inventory.InventoryScreen(mc().player));
+				ctx.waitTicks(20);
+				check(ctx.computeOnClient(mc -> NowPlayingCard.drawnRecently()), "the card stays visible behind the inventory");
+				ctx.takeScreenshot("lyricraft-06c-inventory-open");
 				ctx.setScreen(() -> null);
 				ctx.runOnClient(mc -> cfg.enabled = false);
 				ctx.waitTicks(20);
@@ -236,6 +240,10 @@ public final class LyricraftClientGameTest implements FabricClientGameTest {
 
 	private static boolean hasWidget(ClientGameTestContext ctx, String label) {
 		return widgetCenter(ctx, label) != null;
+	}
+
+	private static Minecraft mc() {
+		return Minecraft.getInstance();
 	}
 
 	/** Clicks one of our (custom) widgets by its label, with the real mouse. */

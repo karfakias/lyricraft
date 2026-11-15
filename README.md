@@ -7,7 +7,7 @@ You don't log in to anything. Put the jar in your mods folder, play a song on Sp
 ## What it does
 
 - Shows synced lyrics for the song you're playing on the Spotify desktop app or the web player
-- 9 ways to show them: a normal line above the hotbar, giant text in the sky, words orbiting around you, holograms, and more
+- 7 ways to show them: a normal line above the hotbar, lyrics that stay floating in the world where you looked, giant text in the sky, words orbiting around you, and more
 - A Now Playing card with the album cover, song, artist and a progress bar
 - Optional "vibe" effects that light up your screen in the album's colours on every word
 - Overlays like a vinyl player, cassette, VHS filter, lo-fi rain and confetti
@@ -20,12 +20,10 @@ Press **N** in game to open the settings. If you have Mod Menu installed, it's a
 
 Switch with **K**.
 
-- **Classic**: a scrolling lyric sheet above the hotbar. The current line fills in as it's sung.
+- **Classic** (the default): a scrolling lyric sheet above the hotbar. The current line fills in as it's sung.
+- **Echoes** (our favourite, give it a try): each new line appears where you're looking and stays there in the world. Walk around during a song and you leave a trail of lyrics behind you.
 - **Sky Writing**: huge lyrics in the sky that drift towards wherever you're looking. In caves, buildings, the Nether and the End it falls back to Classic so you can still read them.
 - **Orbit**: the words circle around you and pop as they're sung.
-- **Hologram**: a little sci-fi panel floating in front of you.
-- **Echoes**: each new line appears where you're looking and stays there in the world. Walk around during a song and you leave a trail of lyrics behind you.
-- **Cinema**: black movie bars with the lyrics as subtitles.
 - **Pop**: the words appear one at a time.
 - **Neon**: the line is a flickering neon sign.
 - **Wave**: the letters ride a wave.

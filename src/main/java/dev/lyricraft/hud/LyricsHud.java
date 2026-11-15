@@ -2,10 +2,8 @@ package dev.lyricraft.hud;
 
 import dev.lyricraft.Config;
 import dev.lyricraft.LyricraftClient;
-import dev.lyricraft.hud.style.CinemaStyle;
 import dev.lyricraft.hud.style.ClassicStyle;
 import dev.lyricraft.hud.style.Frame;
-import dev.lyricraft.hud.style.HologramStyle;
 import dev.lyricraft.hud.style.EchoesStyle;
 import dev.lyricraft.hud.style.NeonStyle;
 import dev.lyricraft.hud.style.WaveStyle;
@@ -82,9 +80,7 @@ public final class LyricsHud implements HudElement {
 		styles.put(Config.Style.CLASSIC, new ClassicStyle());
 		styles.put(Config.Style.SKY, new SkyStyle());
 		styles.put(Config.Style.ORBIT, new OrbitStyle());
-		styles.put(Config.Style.HOLOGRAM, new HologramStyle());
 		styles.put(Config.Style.ECHOES, new EchoesStyle());
-		styles.put(Config.Style.CINEMA, new CinemaStyle());
 		styles.put(Config.Style.POP, new PopStyle());
 		styles.put(Config.Style.NEON, new NeonStyle());
 		styles.put(Config.Style.WAVE, new WaveStyle());
@@ -111,7 +107,8 @@ public final class LyricsHud implements HudElement {
 
 		visibility = Draw.approach(visibility, want ? 1f : 0f, dt * 4f);
 		// the card has its own switch (Card tab), so turning the lyrics off with J keeps it
-		boolean cardWant = track != null && !menuOpen;
+		// the card stays up behind menus too (inventory, pause...), only the lyrics step aside
+		boolean cardWant = track != null;
 		cardVisibility = Draw.approach(cardVisibility, cardWant ? 1f : 0f, dt * 4f);
 		boolean drewLyrics = false;
 		lyricsVisibility = Draw.approach(lyricsVisibility, want && (playing || !cfg.hideWhenPaused) ? 1f : 0f, dt * 3.5f);
@@ -138,7 +135,7 @@ public final class LyricsHud implements HudElement {
 		LyricStyle style = styles.getOrDefault(cfg.style, styles.get(Config.Style.CLASSIC));
 		if (track != null && cardVisibility > 0.01f && cfg.showNowPlaying
 				// in Lyricraft's menus the card always shows, so it can be styled and dragged
-				// (Cinema and the Vinyl/Cassette/VHS overlays replace it, but only while they're actually showing)
+				// (the Vinyl/Cassette/VHS overlays replace it, but only while they're actually showing)
 				&& (ownScreen || !want || style.showsNowPlayingCard() && !overlays.replacesNowPlaying(cfg))) {
 			CoverArt.Cover cover = CoverArt.get(track.trackKey());
 			int accent = cfg.accentFromCover && cover != null ? cover.colorA() : cfg.accentColor & 0xFFFFFF;

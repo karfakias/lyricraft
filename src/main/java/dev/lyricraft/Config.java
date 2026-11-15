@@ -16,7 +16,7 @@ public final class Config {
 	public enum Position { ABOVE_HOTBAR, TOP_CENTER, LEFT_SIDE, RIGHT_SIDE, CUSTOM }
 
 	/** How the lyrics are shown. */
-	public enum Style { CLASSIC, SKY, ORBIT, HOLOGRAM, ECHOES, CINEMA, POP, NEON, WAVE }
+	public enum Style { CLASSIC, ECHOES, SKY, ORBIT, POP, NEON, WAVE }
 
 	/** Screen + world effects that react to the song. */
 	public enum Vibe { OFF, SUBTLE, FULL }
