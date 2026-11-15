@@ -387,8 +387,9 @@ public final class LyricraftScreen extends Screen implements LyricraftUi {
 		y += 26;
 		onlineNumbersY = y;
 		y += 2 * 12 + 4;
-		info = "Works on any server, no server mod needed. Your login never leaves the game: Lyricraft proves who you are the same way joining a server does. "
-				+ "Only your song, artist and current line are shared, and only while you play.";
+		info = "Works on any server, no server mod needed, with official and offline accounts. Your login never leaves the game: "
+				+ "official accounts are checked with the key Minecraft already uses to sign chat. "
+				+ "Only your song, artist, current line and Echoes are shared, only with players on your server, and only while you play.";
 		return y;
 	}
 
@@ -398,9 +399,9 @@ public final class LyricraftScreen extends Screen implements LyricraftUi {
 			case OFF -> "Off";
 			case NOT_SET_UP -> "Not set up yet (no service address)";
 			case CONNECTING -> "Connecting...";
-			case ONLINE -> "Online";
+			case ONLINE -> mod.online.verified() ? "Online (official account)" : "Online (offline account)";
 			case OFFLINE -> minecraft.level == null ? "Join a world to connect" : "Can't reach the service, retrying";
-			case NOT_VERIFIED -> "Couldn't verify your Minecraft account";
+			case NOT_VERIFIED -> "The service didn't accept your name";
 		};
 		row(g, "Status", status, y, st == dev.lyricraft.online.OnlineClient.Status.ONLINE ? acc : 0xB8B8C0);
 		row(g, "Players here", st == dev.lyricraft.online.OnlineClient.Status.ONLINE ? mod.online.othersOnline() + " use Lyricraft" : "-", y + 12, acc);
