@@ -81,9 +81,11 @@ public final class EchoesStyle implements LyricStyle {
 		final float life;
 		final boolean note;
 		final float wobble;
+		final boolean gold;
 		float age;
 
-		Spark(Vec3 pos, Vec3 vel, float life, boolean note, float wobble) {
+		Spark(Vec3 pos, Vec3 vel, float life, boolean note, float wobble, boolean gold) {
+			this.gold = gold;
 			this.pos = pos;
 			this.vel = vel;
 			this.life = life;
@@ -103,6 +105,9 @@ public final class EchoesStyle implements LyricStyle {
 	private final List<Spark> sparks = new ArrayList<>();
 	private final Random rng = new Random();
 	private Lyrics forLyrics;
+	/** Lines that come back more than once in the song (the chorus, mostly). */
+	private boolean[] chorus = new boolean[0];
+	private static final int GOLD = 0xFFD37A;
 	private Object forLevel;
 	private int lastSlot = Integer.MIN_VALUE;
 	private float sparkDebt;
@@ -121,6 +126,7 @@ public final class EchoesStyle implements LyricStyle {
 			panels.clear();
 			sparks.clear();
 			forLyrics = f.lyrics();
+			chorus = findChorus(f.lyrics());
 			forLevel = level;
 			lastSlot = Integer.MIN_VALUE;
 		}
@@ -362,6 +368,12 @@ public final class EchoesStyle implements LyricStyle {
 
 		int acc = current ? f.accent() : Draw.mix(f.accent(), f.colorB(), 0.5f);
 		float glow = current ? 0.7f + beat * 1.3f + f.pulse() * 0.4f : 0.25f;
+		boolean ch = isChorus(pn.index);
+		if (ch) {
+			// chorus lines get a warm gold edge and shine a bit more
+			acc = Draw.mix(acc, GOLD, current ? 0.55f : 0.35f);
+			glow *= 1.3f;
+		}
 		GlassPanel.draw(g, ix0, iy0, ix1, iy1, f.colorA(), acc, vis * Math.min(1f, open + 0.3f), glow, pn.seed, f.time());
 
 		// the light streak it leaves on the way out
@@ -381,7 +393,7 @@ public final class EchoesStyle implements LyricStyle {
 
 		// tiny timestamp tag on the top-left edge
 		float tagScale = Math.max(0.35f, scale * 0.42f);
-		Draw.text(g, f.font(), NowPlayingTime.of(line.startMs()), ix0 + 4 * scale, iy0 + 2 * scale, tagScale,
+		Draw.text(g, f.font(), NowPlayingTime.of(line.startMs()) + (ch ? "  ♫ chorus" : ""), ix0 + 4 * scale, iy0 + 2 * scale, tagScale,
 				Draw.argb(Draw.mix(acc, 0xFFFFFF, 0.3f), 0.6f * vis), false);
 
 		float s = scale * size;
@@ -439,14 +451,14 @@ public final class EchoesStyle implements LyricStyle {
 		Vec3 pos = base.add(right.x * along, upOff, right.z * along);
 		Vec3 vel = new Vec3((rng.nextFloat() - 0.5f) * 0.12f, 0.22f + rng.nextFloat() * 0.25f, (rng.nextFloat() - 0.5f) * 0.12f);
 		boolean note = fromWord ? rng.nextFloat() < 0.5f : rng.nextFloat() < 0.2f;
-		sparks.add(new Spark(pos, vel, 1.2f + rng.nextFloat() * 0.9f, note, rng.nextFloat() * 6.28f));
+		sparks.add(new Spark(pos, vel, 1.2f + rng.nextFloat() * 0.9f, note, rng.nextFloat() * 6.28f, isChorus(pn.index)));
 	}
 
 	private void updateSparks(Frame f, Panel current, long now) {
 		float dt = Math.min(f.dt(), 0.1f);
 		// a gentle trickle while a line is being sung, on top of the bursts on each word
 		if (current != null && f.active() == current.index && f.vis() > 0.1f) {
-			sparkDebt += dt * 4f;
+			sparkDebt += dt * (isChorus(current.index) ? 7f : 4f);
 			while (sparkDebt >= 1f) {
 				sparkDebt -= 1f;
 				addSpark(f, current, now, false);
@@ -471,7 +483,7 @@ public final class EchoesStyle implements LyricStyle {
 			if (a < 0.02f) continue;
 			float wob = (float) Math.sin(sp.age * 5f + sp.wobble) * 0.04f * pt.pxPerBlock();
 			float x = pt.x() + wob, y = pt.y();
-			int col = Draw.mix(f.accent(), f.colorB(), u);
+			int col = Draw.mix(sp.gold ? GOLD : f.accent(), f.colorB(), u * (sp.gold ? 0.4f : 1f));
 			if (sp.note) {
 				float s = Math.clamp(pt.pxPerBlock() * 0.1f / f.font().lineHeight, 0.3f, 1.4f);
 				Draw.text(g, f.font(), "♪", x - 2.5f * s, y - 4 * s, s, Draw.argb(col, 0.85f * a), false);
@@ -481,6 +493,25 @@ public final class EchoesStyle implements LyricStyle {
 				Draw.circle(g, x, y, r, Draw.argb(Draw.mix(col, 0xFFFFFF, 0.6f), 0.9f * a));
 			}
 		}
+	}
+
+	private boolean isChorus(int index) {
+		return index >= 0 && index < chorus.length && chorus[index];
+	}
+
+	private static boolean[] findChorus(Lyrics lyrics) {
+		if (lyrics == null) return new boolean[0];
+		int n = lyrics.lines.size();
+		String[] keys = new String[n];
+		java.util.Map<String, Integer> count = new java.util.HashMap<>();
+		for (int i = 0; i < n; i++) {
+			String k = lyrics.lines.get(i).text().toLowerCase(java.util.Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]", "");
+			keys[i] = k;
+			if (k.length() >= 6) count.merge(k, 1, Integer::sum);
+		}
+		boolean[] out = new boolean[n];
+		for (int i = 0; i < n; i++) out[i] = keys[i].length() >= 6 && count.getOrDefault(keys[i], 0) >= 2;
+		return out;
 	}
 
 	/** m:ss for the little timestamp tags. */
