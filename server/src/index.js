@@ -1,3 +1,5 @@
+import { PLAYER_CERTIFICATE_KEYS } from "./mojang-keys.js";
+
 // Lyricraft online service
 //
 // Lets players who use Lyricraft see each other: a badge next to their name, and (if they
@@ -6,11 +8,17 @@
 // Every player keeps one WebSocket open to a single "Hub" Durable Object.
 //
 // Security model:
-// - Login: the hub sends a one-time challenge. The mod turns it into a Mojang "server id" and
-//   tells Mojang "I'm joining that server" with the player's real login; the hub then asks Mojang
-//   (hasJoined) which account did that. The login token itself only ever goes to Mojang. Because
-//   the server id comes from OUR challenge, a login code captured by some Minecraft server
-//   can't be replayed here.
+// - Login: the hub sends a one-time challenge.
+//   * Official accounts sign it with their chat key (the key pair every Minecraft account gets
+//     for chat signing) and send the certificate Mojang made for that key. The hub checks
+//     Mojang's signature on the certificate and the player's signature on the challenge, so the
+//     account is verified without calling Mojang (Mojang blocks requests from Cloudflare) and
+//     the login token never leaves the game. A signature only works for this connection's
+//     challenge, so it can't be replayed.
+//   * Everyone else (cracked / offline accounts) is let in under the offline id a cracked
+//     server gives their name ("OfflinePlayer:" + name). Those ids never appear on official
+//     servers, so nobody can pretend to be a premium player.
+//   * Verified players also get their offline id, so they show up on cracked servers too.
 // - Privacy: a player's badge, song and line only go to players who can see them AND whom they
 //   can see (both are in each other's tab list, i.e. really on the same server). Nobody can look
 //   up an arbitrary player from afar.
@@ -136,14 +144,16 @@ export class Hub {
 			ws.serializeAttachment(a);
 			const profile = await this.verify(msg, a.nonce);
 			if (!profile) {
-				try { ws.send(JSON.stringify({ t: "denied" })); ws.close(4001, "not verified"); } catch { /* gone */ }
+				try { ws.send(JSON.stringify({ t: "denied" })); ws.close(4001, "bad login"); } catch { /* gone */ }
 				return;
 			}
 			const fresh = this.att(ws);
 			fresh.id = profile.id;
+			fresh.alt = profile.alt;
+			fresh.verified = profile.verified;
 			fresh.nonce = null;
 			ws.serializeAttachment(fresh);
-			ws.send(JSON.stringify({ t: "welcome", id: profile.id }));
+			ws.send(JSON.stringify({ t: "welcome", id: profile.id, ids: idsOf(fresh), verified: profile.verified }));
 			return;
 		}
 		if (!a.id) return; // everything else needs a verified player
@@ -161,20 +171,21 @@ export class Hub {
 			const players = [];
 			for (const other of this.ctx.getWebSockets()) {
 				const o = this.att(other);
-				if (!o.id || o.id === a.id || !after.has(o.id)) continue;
-				if ((o.watch || []).includes(a.id)) players.push({ id: o.id, state: o.state });
+				if (!o.id || o.id === a.id || !seesAny(after, o)) continue;
+				if (watches(o, a)) players.push({ id: seenAs(o, after), state: o.state });
 			}
-			const self = { id: a.id, state: a.state };
-			ws.send(JSON.stringify({ t: "snapshot", players: [self, ...dedupe(players)] }));
+			const self = idsOf(a).map((id) => ({ id, state: a.state }));
+			ws.send(JSON.stringify({ t: "snapshot", players: [...self, ...dedupe(players)] }));
 
 			// the other direction: players who just came into / left this player's view
 			for (const other of this.ctx.getWebSockets()) {
 				if (other === ws) continue;
 				const o = this.att(other);
-				if (!o.id || o.id === a.id || !(o.watch || []).includes(a.id)) continue;
-				const nowSees = after.has(o.id), sawBefore = before.has(o.id);
-				if (nowSees && !sawBefore) safeSend(other, { t: "state", id: a.id, state: a.state });
-				if (!nowSees && sawBefore) safeSend(other, { t: "gone", id: a.id });
+				if (!o.id || o.id === a.id || !watches(o, a)) continue;
+				const nowSees = seesAny(after, o), sawBefore = seesAny(before, o);
+				const as = seenAs(a, new Set(o.watch || []));
+				if (nowSees && !sawBefore) safeSend(other, { t: "state", id: as, state: a.state });
+				if (!nowSees && sawBefore) safeSend(other, { t: "gone", id: as });
 			}
 			return;
 		}
@@ -186,7 +197,7 @@ export class Hub {
 			if (!echo) return;
 			a.lastEcho = now;
 			ws.serializeAttachment(a);
-			this.broadcast(a, { t: "echo", id: a.id, ...echo }, null, true);
+			this.broadcast(a, (id) => ({ t: "echo", id, ...echo }), null, true);
 			return;
 		}
 
@@ -196,7 +207,7 @@ export class Hub {
 				? null
 				: clean({ song: msg.song, artist: msg.artist, line: msg.line, dur: msg.dur, elapsed: msg.elapsed });
 			ws.serializeAttachment(a);
-			this.broadcast(a, { t: "state", id: a.id, state: a.state });
+			this.broadcast(a, (id) => ({ t: "state", id, state: a.state }));
 		}
 	}
 
@@ -213,15 +224,15 @@ export class Hub {
 		if (!a.id) return;
 		// still connected from somewhere else (two game windows)? then they haven't left
 		const still = this.ctx.getWebSockets().some((o) => o !== ws && this.att(o).id === a.id);
-		if (!still) this.broadcast(a, { t: "gone", id: a.id }, ws);
+		if (!still) this.broadcast(a, (id) => ({ t: "gone", id }), ws, true);
 	}
 
 	/**
 	 * Send something about player `a` to: themselves, and every player who can see them and
-	 * whom they can see (mutual). Nobody else learns anything about them.
+	 * whom they can see (mutual). Nobody else learns anything about them. Each viewer gets it
+	 * under the id they know `a` by (premium id on official servers, offline id on cracked ones).
 	 */
-	broadcast(a, message, skip, othersOnly = false) {
-		const text = JSON.stringify(message);
+	broadcast(a, make, skip, othersOnly = false) {
 		const theySee = new Set();
 		for (const ws of this.ctx.getWebSockets()) {
 			const o = this.att(ws);
@@ -231,41 +242,111 @@ export class Hub {
 			if (ws === skip) continue;
 			const o = this.att(ws);
 			if (!o.id) continue;
-			const mutual = theySee.has(o.id) && (o.watch || []).includes(a.id);
-			if ((o.id === a.id && !othersOnly) || mutual) safeSend(ws, text);
+			if (o.id === a.id) {
+				if (!othersOnly) for (const id of idsOf(a)) safeSend(ws, make(id));
+				continue;
+			}
+			if (seesAny(theySee, o) && watches(o, a)) safeSend(ws, make(seenAs(a, new Set(o.watch || []))));
 		}
 	}
 
 	/**
-	 * Mojang login check, bound to this connection's challenge. Returns { id, name } or null.
+	 * Works out who's logging in. Returns { id, alt, verified } or null for a broken login.
+	 * Official accounts that prove their chat certificate get their real id (plus their offline
+	 * id as alt). Everyone else gets the offline id for their name.
 	 */
 	async verify(msg, nonce) {
 		if (this.env.DEV === "1" && msg.devId) {
 			const id = normalizeId(msg.devId); // local testing only, never in production
-			return id ? { id, name: "dev" } : null;
+			return id ? { id, alt: null, verified: false } : null;
 		}
 		const name = String(msg.name || "");
 		if (!nonce || !/^[A-Za-z0-9_]{1,16}$/.test(name)) return null;
-		const serverId = await serverIdFor(nonce);
-		try {
-			const res = await fetch(
-				`https://sessionserver.mojang.com/session/minecraft/hasJoined?username=${encodeURIComponent(name)}&serverId=${serverId}`,
-			);
-			if (res.status !== 200) return null;
-			const profile = await res.json();
-			const id = normalizeId(profile.id);
-			return id ? { id, name: String(profile.name || "") } : null;
-		} catch {
-			return null;
-		}
+		const offline = await offlineId(name);
+		const premium = await verifyCertificate(msg.cert, msg.proof, nonce, this.env).catch(() => null);
+		if (premium && premium !== offline) return { id: premium, alt: offline, verified: true };
+		return { id: offline, alt: null, verified: false };
 	}
 }
 
-/** The Mojang server id for a challenge: sha1("lyricraft:" + nonce) as hex. The mod computes the same. */
-async function serverIdFor(nonce) {
-	const data = new TextEncoder().encode(`lyricraft:${nonce}`);
-	const hash = await crypto.subtle.digest("SHA-1", data);
-	return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("");
+/** Every id a player can be known by. */
+function idsOf(a) {
+	return a.alt ? [a.id, a.alt] : a.id ? [a.id] : [];
+}
+
+/** Does this watch list contain any of `o`'s ids? */
+function seesAny(list, o) {
+	return idsOf(o).some((id) => list.has(id));
+}
+
+/** Is `o` watching any of `a`'s ids? */
+function watches(o, a) {
+	return seesAny(new Set(o.watch || []), a);
+}
+
+/** The id of `a` that appears in a viewer's watch list (or the main one). */
+function seenAs(a, list) {
+	return idsOf(a).find((id) => list.has(id)) || a.id;
+}
+
+/** The id a cracked (offline mode) server gives a name: UUID v3 of "OfflinePlayer:" + name, like Java's nameUUIDFromBytes. */
+export async function offlineId(name) {
+	const hash = new Uint8Array(await crypto.subtle.digest("MD5", new TextEncoder().encode(`OfflinePlayer:${name}`)));
+	hash[6] = (hash[6] & 0x0f) | 0x30;
+	hash[8] = (hash[8] & 0x3f) | 0x80;
+	const hex = [...hash].map((b) => b.toString(16).padStart(2, "0")).join("");
+	return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+let mojangKeys;
+async function mojangCertificateKeys(env) {
+	if (!mojangKeys) {
+		const keys = [...PLAYER_CERTIFICATE_KEYS];
+		// local tests only: a stand-in "Mojang" key, never accepted in production
+		if (env.DEV === "1" && typeof env.TEST_MOJANG_KEY === "string") keys.push(env.TEST_MOJANG_KEY);
+		mojangKeys = await Promise.all(keys.map((k) => crypto.subtle.importKey(
+			"spki", b64(k), { name: "RSASSA-PKCS1-v1_5", hash: "SHA-1" }, false, ["verify"])));
+	}
+	return mojangKeys;
+}
+
+/**
+ * Checks an official account's chat certificate and its signature on our challenge.
+ * cert = { uuid, exp (ms), key (base64 X.509 public key), sig (base64, Mojang's signature) },
+ * proof = base64 SHA256withRSA signature of "lyricraft:" + nonce made with the chat key.
+ * Returns the verified id, or null.
+ */
+async function verifyCertificate(cert, proof, nonce, env) {
+	if (!cert || typeof cert !== "object" || typeof proof !== "string" || proof.length > 2048) return null;
+	const id = normalizeId(cert.uuid);
+	const exp = Number(cert.exp);
+	if (!id || !Number.isSafeInteger(exp) || exp < Date.now()) return null;
+	if (typeof cert.key !== "string" || cert.key.length > 2048 || typeof cert.sig !== "string" || cert.sig.length > 2048) return null;
+	const key = b64(cert.key), sig = b64(cert.sig);
+
+	// what Mojang signed: uuid (16 bytes) + expiry (8 bytes, big endian) + the public key
+	const payload = new Uint8Array(24 + key.length);
+	const hex = id.replace(/-/g, "");
+	for (let i = 0; i < 16; i++) payload[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+	new DataView(payload.buffer).setBigInt64(16, BigInt(exp));
+	payload.set(key, 24);
+	let signedByMojang = false;
+	for (const k of await mojangCertificateKeys(env)) {
+		if (await crypto.subtle.verify("RSASSA-PKCS1-v1_5", k, sig, payload)) { signedByMojang = true; break; }
+	}
+	if (!signedByMojang) return null;
+
+	// and the player holds the matching private key: they signed this connection's challenge
+	const chatKey = await crypto.subtle.importKey("spki", key, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"]);
+	const ok = await crypto.subtle.verify("RSASSA-PKCS1-v1_5", chatKey, b64(proof), new TextEncoder().encode(`lyricraft:${nonce}`));
+	return ok ? id : null;
+}
+
+function b64(s) {
+	const bin = atob(s);
+	const out = new Uint8Array(bin.length);
+	for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+	return out;
 }
 
 function randomHex(bytes) {
