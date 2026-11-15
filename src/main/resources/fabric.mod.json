@@ -6,7 +6,7 @@
 	"description": "Live, synced karaoke lyrics for whatever you're playing on Spotify. No login, client-side only.",
 	"authors": ["karfakias"],
 	"contact": {
-		"homepage": "https://modrinth.com/mod/lyricraft",
+		"homepage": "https://modrinth.com/mod/lyricraft-for-spotify",
 		"sources": "https://github.com/karfakias/lyricraft",
 		"issues": "https://github.com/karfakias/lyricraft/issues"
 	},

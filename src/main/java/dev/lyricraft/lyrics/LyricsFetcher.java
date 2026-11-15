@@ -41,7 +41,7 @@ public final class LyricsFetcher {
 	private static final String API = "https://lrclib.net/api";
 	/** Who's asking, as LRCLIB requests (computed on use so this class loads without the game). */
 	static String userAgent() {
-		return "Lyricraft/" + LyricraftClient.VERSION + " (Minecraft mod; https://modrinth.com/mod/lyricraft)";
+		return "Lyricraft/" + LyricraftClient.VERSION + " (Minecraft mod; https://modrinth.com/mod/lyricraft-for-spotify)";
 	}
 
 	/** Versions whose length is this close to the song's are the same recording. */
