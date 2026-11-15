@@ -60,6 +60,7 @@ public final class LyricsHud implements HudElement {
 	}
 
 	private final NowPlayingCard card = new NowPlayingCard();
+	private final OverheadLyrics overhead = new OverheadLyrics();
 	private static final MediaSnapshot DEMO = new MediaSnapshot("Spotify.exe", "Your song here", "Play something on Spotify",
 			"", 0, 200_000, true, 0);
 	private float visibility = 0f;
@@ -168,6 +169,12 @@ public final class LyricsHud implements HudElement {
 			}
 		}
 		lyricsOnScreen = drewLyrics;
+		// other Lyricraft players' current line above their heads
+		if (!menuOpen && mc.level != null) {
+			projector.update(mc.gameRenderer.mainCamera(), gw, gh);
+			overhead.render(g, mc.font, mc, projector, cfg, mod.online, delta.getGameTimeDeltaPartialTick(true),
+					cfg.accentColor & 0xFFFFFF);
+		}
 		overlays.renderOver(g, mc.font, cfg, time);
 		if (toast != null && !menuOpen) drawToast(g, mc.font, toast);
 	}

@@ -1,0 +1,13 @@
+# Lyricraft online service (Cloudflare Workers). See server/README.md for how to deploy it.
+name = "lyricraft"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+[[durable_objects.bindings]]
+name = "HUB"
+class_name = "Hub"
+
+# Free plan: Durable Objects must use the SQLite backend
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Hub"]

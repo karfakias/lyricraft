@@ -199,6 +199,71 @@ public final class LyricraftClientGameTest implements FabricClientGameTest {
 				ctx.setScreen(() -> null);
 			}
 
+			// ---------------------------------------------------------- online (needs a local service: cd server && npm run dev)
+			String local = System.getProperty("lyricraft.testServer", "http://127.0.0.1:8787");
+			boolean serviceUp;
+			try (var s = new java.net.Socket()) {
+				s.connect(new java.net.InetSocketAddress("127.0.0.1", 8787), 500);
+				serviceUp = true;
+			} catch (Exception e) {
+				serviceUp = false;
+			}
+			if (serviceUp) {
+				ctx.runOnClient(mc -> {
+					cfg.onlineServer = local;
+					cfg.online = true;
+					cfg.shareLyrics = true;
+					cfg.showBadges = true;
+					cfg.showOthersLyrics = true;
+				});
+				ctx.waitFor(mc -> LyricraftClient.get().online.status() == dev.lyricraft.online.OnlineClient.Status.ONLINE, 300);
+				ctx.waitTicks(60); // watch list + our own state come back
+				java.util.UUID me = ctx.computeOnClient(mc -> mc.player.getUUID());
+				check(ctx.computeOnClient(mc -> LyricraftClient.get().online.usesMod(me)), "connected and we show up as a Lyricraft player");
+				String tabName = ctx.computeOnClient(mc -> mc.gui.hud.getTabList()
+						.getNameForDisplay(mc.getConnection().getPlayerInfo(me)).getString());
+				log("tab list name: " + tabName);
+				check(tabName.endsWith("♫"), "the tab list shows the ♫ badge");
+				String tag = ctx.computeOnClient(mc -> {
+					try {
+						var renderer = mc.getEntityRenderDispatcher().getRenderer(mc.player);
+						var m = net.minecraft.client.renderer.entity.EntityRenderer.class.getDeclaredMethod("getNameTag", net.minecraft.world.entity.Entity.class);
+						m.setAccessible(true);
+						Object c = m.invoke(renderer, mc.player);
+						return c == null ? "" : ((net.minecraft.network.chat.Component) c).getString();
+					} catch (ReflectiveOperationException e) {
+						return "error: " + e;
+					}
+				});
+				log("name tag: " + tag);
+				check(tag.endsWith("♫"), "the name tag shows the ♫ badge");
+				if (playing) {
+					ctx.waitFor(mc -> {
+						var r = LyricraftClient.get().online.remote(me);
+						return r != null && r.song() != null;
+					}, 200);
+					var r = ctx.computeOnClient(mc -> LyricraftClient.get().online.remote(me));
+					log("shared state came back: song='" + r.song() + "' line='" + r.line() + "'");
+					check(r.song() != null, "our song comes back from the service");
+				}
+				ctx.getInput().holdKey(o -> o.keyPlayerList);
+				ctx.waitTicks(5);
+				ctx.takeScreenshot("lyricraft-10-tab-badge");
+				ctx.getInput().releaseKey(o -> o.keyPlayerList);
+				ctx.runOnClient(mc -> mc.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_FRONT));
+				ctx.waitTicks(40);
+				ctx.takeScreenshot("lyricraft-11-lyrics-above-head");
+				ctx.runOnClient(mc -> mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON));
+				ctx.setScreen(() -> new LyricraftScreen(LyricraftClient.get(), null));
+				ctx.waitTicks(5);
+				clickWidget(ctx, "Online");
+				ctx.waitTicks(5);
+				ctx.takeScreenshot("lyricraft-12-online-tab");
+				ctx.setScreen(() -> null);
+			} else {
+				log("no local online service on :8787: skipped the online checks");
+			}
+
 			// ---------------------------------------------------------- every look and theme
 			ctx.runOnClient(mc -> {
 				cfg.cardX = 0f;

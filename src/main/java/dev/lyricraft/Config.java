@@ -65,6 +65,18 @@ public final class Config {
 	public boolean combineVersions = true;
 	/** Also ask NetEase Cloud Music for lyrics (an extra opinion on the timing). Off by default. */
 	public boolean extraLyricsSource = false;
+
+	// --- online: see other Lyricraft players
+	/** Connect to the Lyricraft online service (badges and other players' lyrics). */
+	public boolean online = true;
+	/** Share the song and line you're hearing with players near you. */
+	public boolean shareLyrics = true;
+	/** Show the ♫ badge next to players who use Lyricraft. */
+	public boolean showBadges = true;
+	/** Show other players' current line above their head. */
+	public boolean showOthersLyrics = true;
+	/** Address of the online service (your own Cloudflare Worker, see server/README.md). */
+	public String onlineServer = "https://lyricraft.YOUR-SUBDOMAIN.workers.dev";
 	/** Keep the playback clock locked to Spotify by measuring and correcting drift. */
 	public boolean autoSync = true;
 	public Position position = Position.ABOVE_HOTBAR;

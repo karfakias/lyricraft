@@ -8,6 +8,7 @@
 	"license": "MIT",
 	"icon": "assets/lyricraft/icon.png",
 	"environment": "client",
+	"mixins": ["lyricraft.mixins.json"],
 	"entrypoints": {
 		"client": ["dev.lyricraft.LyricraftClient"],
 		"modmenu": ["dev.lyricraft.gui.ModMenuIntegration"]
