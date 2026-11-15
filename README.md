@@ -51,7 +51,7 @@ Players who use Lyricraft get a green ♫ after their name, in the tab list and 
 
 If a friend near you uses the Echoes style, you see their panels too, in the same spots in the world, with their name and their own colour. They only show for players close by (48 blocks) in the same world, at most 12 at a time, and they never cover your own panels or each other: they slide out of the way, or stay hidden if there's no room.
 
-This works on any server without a server mod, through a small Lyricraft online service. Your Minecraft login never leaves the game: Lyricraft proves who you are the same way joining a server does. Only your song, artist, current line and where your Echoes panels are placed are shared, and only with players who are on the same server as you (you both see each other in the tab list). Nobody can look you up from elsewhere, and nothing is stored. Other players never see your IP address.
+This works on any server without a server mod, through a small Lyricraft online service. It works with official and offline accounts. Your Minecraft login never leaves the game: official accounts are checked with the key Minecraft already uses to sign chat messages. Only your song, artist, current line and where your Echoes panels are placed are shared, and only with players who are on the same server as you (you both see each other in the tab list). Nobody can look you up from elsewhere, and nothing is stored. Other players never see your IP address.
 
 Everything is in the **Online** tab: turn sharing off to only show the badge, stop sharing your Echoes, hide other players' lyrics or Echoes, or switch the online part off completely.
 
