@@ -76,7 +76,7 @@ public final class Config {
 	/** Show other players' current line above their head. */
 	public boolean showOthersLyrics = true;
 	/** Address of the online service (your own Cloudflare Worker, see server/README.md). */
-	public String onlineServer = "https://lyricraft.YOUR-SUBDOMAIN.workers.dev";
+	public String onlineServer = "https://lyricraft.lyricraft-server.workers.dev";
 	/** Keep the playback clock locked to Spotify by measuring and correcting drift. */
 	public boolean autoSync = true;
 	public Position position = Position.ABOVE_HOTBAR;
