@@ -48,9 +48,15 @@ Vinyl, Cassette, VHS, Synthwave, Visualizer, Lo-fi Rain, Starry Night, Oscillosc
 
 ## Timing
 
-If the lyrics are a bit early or late, press **[** or **]** to move them by 0.1 seconds. Lyricraft remembers that for the song. After a few corrections it also learns your usual delay (Bluetooth headphones, for example) and applies it to new songs.
+A few things keep the lyrics in time without you doing anything:
 
-It also keeps checking its clock against Spotify's and slowly corrects itself, so the lyrics don't drift during long songs. You can turn that off with `"autoSync": false` if you ever need to.
+- **Better lyrics timing.** Most songs on LRCLIB have several synced versions made by different people, and each one is a little off in its own way. Lyricraft downloads all the versions that match your song's length and uses the middle time of every line, so one person's mistakes don't count. Versions timed to a different cut of the song (radio edit, live) get ignored.
+- **Exact position.** On Windows, Spotify only reports where it is every few seconds, along with the exact time it did. Lyricraft works the position out from that itself, so there's no delay in between.
+- **Bluetooth.** If your sound goes to Bluetooth headphones, the lyrics wait a little for them, because Bluetooth plays audio late. Speakers and headphones each remember their own timing.
+
+If a song is still early or late, press **[** or **]** to move it by 0.1 seconds. Lyricraft remembers that for the song and learns your usual delay from it. In the Sync tab you can also share your fix with LRCLIB, so the song is right for everyone. It always asks first.
+
+There's also an optional extra lyrics source, NetEase Cloud Music, in the Sync tab. It's off by default because it's a Chinese service, and turning it on sends them the song title and artist.
 
 ## Controls
 
@@ -73,7 +79,7 @@ Lyricraft never touches your Spotify account. It asks your computer what's playi
 - **macOS**: asks the Spotify app directly (desktop app only).
 - **Linux**: uses `playerctl`, so install that first.
 
-The lyrics come from [LRCLIB](https://lrclib.net), a free, open lyrics database. The only thing sent is the song's title, artist, album and length.
+The lyrics come from [LRCLIB](https://lrclib.net), a free, open lyrics database. The only thing sent is the song's title, artist, album and length. The Windows script also checks whether your default sound output is Bluetooth, which stays on your PC.
 
 ## Config
 

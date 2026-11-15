@@ -62,19 +62,23 @@ public final class PlaybackTracker {
 		long estimated = estimatedRawPositionMs();
 		boolean seek = Math.abs(estimated - s.positionMs()) > SNAP_THRESHOLD_MS;
 
-		if (newTrack || seek || playing != s.playing()) {
+		if (newTrack || playing != s.playing() || (seek && s.fresh())) {
 			anchorPosMs = s.positionMs();
 			anchorNanos = s.sampledAtNanos();
 			resetRate();
-		} else if (s.playing()) {
+		} else if (s.playing() && s.fresh()) {
+			// Only real reports from the player carry information. (On Windows, Spotify reports
+			// every ~4.5 s; the readings in between are just its last report counted forward.)
+			recordSample(s);
 			learnRate(s);
-			// Small drift: ease towards the OS value instead of jumping, so the karaoke fill never stutters.
-			long drift = s.positionMs() - estimated;
-			anchorPosMs = estimated + drift / 4;
+			// Ease towards the reported position instead of jumping, so the karaoke fill never
+			// stutters. Real reports are exact (we timestamp them ourselves), so ease in quickly.
+			long drift = s.positionMs() - estimatedRawPositionMs();
+			anchorPosMs = estimatedRawPositionMs() + drift / 2;
 			anchorNanos = System.nanoTime();
 			lastDriftMs = drift;
 		}
-		if (s.playing()) recordSample(s);
+		if (s.playing() && s.fresh() && sampleCount == 0) recordSample(s);
 		playing = s.playing();
 
 		if (newTrack) {
@@ -93,11 +97,11 @@ public final class PlaybackTracker {
 	//
 	// Spotify's reported position and the game's clock don't always tick at exactly the same
 	// speed (browser timelines update in chunks, the OS clock and Spotify's audio clock drift).
-	// We fit a straight line through the last ~25 s of readings: its slope is how fast the song
-	// *really* moves per real second. Our clock then runs at that speed, so it stops drifting
-	// instead of constantly being corrected.
+	// We fit a straight line through the last ~40 s of *real* reports from the player: its slope
+	// is how fast the song really moves per real second. Our clock then runs at that speed, so it
+	// stops drifting instead of constantly being corrected.
 
-	private static final int MAX_SAMPLES = 64;
+	private static final int MAX_SAMPLES = 16;
 	private final long[] sampleNanos = new long[MAX_SAMPLES];
 	private final long[] samplePos = new long[MAX_SAMPLES];
 	private int sampleCount, sampleHead;
@@ -134,7 +138,7 @@ public final class PlaybackTracker {
 	}
 
 	private void learnRate(MediaSnapshot latest) {
-		if (!autoSync || sampleCount < 12) return;
+		if (!autoSync || sampleCount < 4) return;
 		// least squares: pos = a + slope * t
 		long t0 = sampleNanos[(sampleHead - sampleCount + MAX_SAMPLES) % MAX_SAMPLES];
 		double n = sampleCount, sx = 0, sy = 0, sxx = 0, sxy = 0;
@@ -147,11 +151,11 @@ public final class PlaybackTracker {
 		}
 		double span = (latest.sampledAtNanos() - t0) / 1e6;
 		double denom = n * sxx - sx * sx;
-		if (span < 8000 || denom <= 0) return;
+		if (span < 12000 || denom <= 0) return;
 		double slope = (n * sxy - sx * sy) / denom;
 		if (Double.isNaN(slope)) return;
-		slope = Math.clamp(slope, 0.97, 1.03); // never more than 3% faster/slower
-		rate = rate * 0.85 + slope * 0.15;
+		slope = Math.clamp(slope, 0.98, 1.02); // never more than 2% faster/slower
+		rate = rate * 0.7 + slope * 0.3;
 	}
 
 	/** Current smooth position in ms. */

@@ -56,6 +56,15 @@ public final class Config {
 	 * per-song nudges, so e.g. Bluetooth headphone delay gets corrected for every song.
 	 */
 	public int offsetMs = 0;
+	/**
+	 * Same, but for when the sound goes to Bluetooth headphones (Windows detects that). They play
+	 * audio ~150-250 ms late, so this starts at +200 and is learned separately from offsetMs.
+	 */
+	public int offsetBluetoothMs = 200;
+	/** Combine every synced version of a song from LRCLIB into one better-timed version. */
+	public boolean combineVersions = true;
+	/** Also ask NetEase Cloud Music for lyrics (an extra opinion on the timing). Off by default. */
+	public boolean extraLyricsSource = false;
 	/** Keep the playback clock locked to Spotify by measuring and correcting drift. */
 	public boolean autoSync = true;
 	public Position position = Position.ABOVE_HOTBAR;

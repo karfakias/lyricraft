@@ -309,10 +309,12 @@ public final class LyricraftScreen extends Screen implements LyricraftUi {
 		return y + ((all.length + 1) / 2) * 22;
 	}
 
+	private int syncNumbersY;
+
 	private int syncTab(int y) {
 		int cw = cx1 - cx0, half = (cw - 4) / 2;
 		toggle(cx0, y, cw, "Auto-sync", () -> cfg().autoSync, v -> cfg().autoSync = v,
-				"Measures Spotify's clock all the time and speeds up / slows down the lyrics to stay locked to it.");
+				"Follows Spotify's own position reports and keeps the lyrics clock locked to them.");
 		y += 22;
 		add(new Widgets.Action(cx0, y, half, 20, "« Earlier", false, () -> nudge(-100), "Lyrics 0.1 s sooner. Key: ["));
 		add(new Widgets.Action(cx0 + half + 4, y, half, 20, "Later »", false, () -> nudge(100), "Lyrics 0.1 s later. Key: ]"));
@@ -321,10 +323,55 @@ public final class LyricraftScreen extends Screen implements LyricraftUi {
 			MediaSnapshot now = mod.tracker.current();
 			if (now != null) mod.sync.reset(now.trackKey());
 		}, "Forget the timing you set for this song."));
-		y += 26 + 52; // room for the live numbers
-		info = "Lyricraft keeps itself in time with Spotify on its own. If a song is early or late, fix it once: "
-				+ "it's remembered for that song and teaches the default for every other song.";
+		y += 22;
+		toggle(cx0, y, cw, "Combine lyric versions", () -> cfg().combineVersions, v -> {
+			cfg().combineVersions = v;
+			mod.reloadLyrics();
+		}, "Most songs have several synced versions made by different people. Lyricraft takes the middle time of every line across them, so one person's mistakes don't count.");
+		y += 22;
+		toggle(cx0, y, cw, "Extra source: NetEase", () -> cfg().extraLyricsSource, v -> {
+			cfg().extraLyricsSource = v;
+			mod.reloadLyrics();
+		}, "Also asks NetEase Cloud Music (a Chinese music service) for the lyrics, as one more opinion on the timing. Sends the song title and artist to them. Off by default.");
+		y += 22;
+		Widgets.Action share = add(new Widgets.Action(cx0, y, cw, 20, "Share this song's fix", false, this::confirmShare,
+				"Uploads this song's lyrics with your timing fix to LRCLIB, so everyone gets them right. Asks first."));
+		share.active = canShare();
+		y += 26;
+		syncNumbersY = y;
+		y += 6 * 12 + 4; // room for the live numbers
+		info = "Lyricraft keeps itself in time with Spotify on its own. If a song is still early or late, fix it once: "
+				+ "it's remembered for that song, and teaches the default for every other song (separately for speakers and Bluetooth).";
 		return y;
+	}
+
+	/** How much of this song's timing is about the song itself (not your headphones). */
+	private int songFix() {
+		MediaSnapshot now = mod.tracker.current();
+		return now == null ? 0 : mod.sync.songOnlyOffset(now.trackKey());
+	}
+
+	private boolean canShare() {
+		dev.lyricraft.lyrics.Lyrics l = mod.lyrics();
+		return l != null && l.kind == dev.lyricraft.lyrics.Lyrics.Kind.SYNCED && Math.abs(songFix()) >= 50;
+	}
+
+	private void confirmShare() {
+		MediaSnapshot now = mod.tracker.current();
+		dev.lyricraft.lyrics.Lyrics lyrics = mod.lyrics();
+		if (now == null || lyrics == null || !canShare()) return;
+		int shift = songFix();
+		minecraft.gui.setScreen(new net.minecraft.client.gui.screens.ConfirmScreen(yes -> {
+			if (yes) {
+				mod.showToast("Sharing... solving LRCLIB's anti-spam puzzle");
+				dev.lyricraft.lyrics.LrclibPublisher.publish(now, lyrics, shift)
+						.thenAccept(msg -> minecraft.execute(() -> mod.showToast(msg)));
+			}
+			minecraft.gui.setScreen(this);
+		}, Component.literal("Share this fix with everyone?"),
+				Component.literal("This uploads the lyrics of \"" + now.title() + "\" by " + now.artist()
+						+ " with your timing fix (" + signed(shift) + ") to lrclib.net, so the next person gets them in time."
+						+ " It's public and can't be undone. Your headphone delay isn't included, and nothing else about you is sent.")));
 	}
 
 	/** Small grey heading drawn above a group of tiles. */
@@ -380,7 +427,7 @@ public final class LyricraftScreen extends Screen implements LyricraftUi {
 			Draw.text(g, font, labelText.get(i), cx0 + 1, labels.get(i)[0] - scroll, 0.75f, Draw.argb(0x8A8A96, 1f), false);
 		}
 		int iy = infoBaseY - scroll;
-		if (tab == Tab.SYNC) syncNumbers(g, iy - 54, acc);
+		if (tab == Tab.SYNC) syncNumbers(g, syncNumbersY - scroll, acc);
 		String text = info;
 		for (GuiEventListener l : children()) {
 			if (l instanceof Widgets.Chip chip && chip.visible && chip.isHovered()) text = chip.info;
@@ -424,13 +471,20 @@ public final class LyricraftScreen extends Screen implements LyricraftUi {
 
 	private void syncNumbers(GuiGraphicsExtractor g, int y, int acc) {
 		MediaSnapshot now = mod.tracker.current();
+		boolean bt = dev.lyricraft.media.AudioOutput.bluetooth();
 		String song = now == null ? "-" : signed(mod.sync.offsetFor(now.trackKey()))
 				+ (mod.sync.hasOwnOffset(now.trackKey()) ? "  (yours)" : "  (default)");
 		row(g, "This song", song, y, acc);
-		row(g, "Learned default", signed(cfg().offsetMs), y + 12, acc);
+		row(g, "Default", signed(cfg().offsetMs) + " speakers  ·  " + signed(cfg().offsetBluetoothMs) + " Bluetooth", y + 12, acc);
+		String out = dev.lyricraft.media.AudioOutput.name();
+		row(g, "Sound out", (out.isEmpty() ? (bt ? "Bluetooth" : "-") : Draw.ellipsize(font, out, cx1 - cx0 - 96)) + (bt ? "  (Bluetooth)" : ""), y + 24, acc);
+		dev.lyricraft.lyrics.Lyrics l = mod.lyrics();
+		String lyr = l == null ? "-" : l.kind != dev.lyricraft.lyrics.Lyrics.Kind.SYNCED ? "not synced"
+				: (l.versions > 1 ? l.versions + " versions combined" : "1 version") + (l.source.isEmpty() ? "" : "  ·  " + l.source);
+		row(g, "Lyrics", lyr, y + 36, acc);
 		double rate = mod.tracker.rate();
-		row(g, "Clock speed", String.format("%.3f×", rate) + (Math.abs(rate - 1) < 0.0005 ? "  perfect" : "  correcting"), y + 24, acc);
-		row(g, "Last drift", mod.tracker.lastDriftMs() + " ms", y + 36, acc);
+		row(g, "Clock speed", String.format("%.3f×", rate) + (Math.abs(rate - 1) < 0.0005 ? "  perfect" : "  correcting"), y + 48, acc);
+		row(g, "Last drift", mod.tracker.lastDriftMs() + " ms", y + 60, acc);
 	}
 
 	private void row(GuiGraphicsExtractor g, String label, String value, int y, int acc) {
