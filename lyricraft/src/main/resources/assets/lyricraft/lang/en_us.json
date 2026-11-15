@@ -1,0 +1,11 @@
+{
+  "key.category.lyricraft.lyricraft": "Lyricraft",
+  "key.lyricraft.toggle": "Toggle lyrics",
+  "key.lyricraft.style": "Switch lyrics style",
+  "key.lyricraft.vibe": "Vibe mode (off / subtle / full)",
+  "key.lyricraft.overlay": "Switch overlay",
+  "key.lyricraft.offset_up": "Lyrics later (+100 ms)",
+  "key.lyricraft.offset_down": "Lyrics earlier (-100 ms)",
+  "key.lyricraft.cycle_position": "Move lyrics",
+  "key.lyricraft.menu": "Open Lyricraft menu"
+}
