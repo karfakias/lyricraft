@@ -169,7 +169,7 @@ final class Widgets {
 			} else background(g, false);
 			Font f = font();
 			String s = getMessage().getString();
-			int col = primary ? 0xFF0A0A0E : 0xFFFFFFFF;
+			int col = !active ? 0xFF6A6A76 : primary ? 0xFF0A0A0E : 0xFFFFFFFF;
 			g.text(f, s, getX() + (getWidth() - f.width(s)) / 2, textY(), col, false);
 		}
 	}

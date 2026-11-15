@@ -172,6 +172,29 @@ public final class LyricraftClientGameTest implements FabricClientGameTest {
 				log("nothing playing on Spotify: skipped the chat / lyrics-off card checks");
 			}
 
+			// ---------------------------------------------------------- sync
+			if (playing) {
+				// wait for lyrics to arrive (network), then check the combined result and the clock
+				ctx.waitFor(mc -> LyricraftClient.get().lyrics() != null, 400);
+				var lyr = ctx.computeOnClient(mc -> LyricraftClient.get().lyrics());
+				log("lyrics: " + lyr.kind + ", " + lyr.versions + " version(s) combined, source '" + lyr.source + "'");
+				String out = ctx.computeOnClient(mc -> dev.lyricraft.media.AudioOutput.name());
+				log("sound output: '" + out + "' bluetooth=" + dev.lyricraft.media.AudioOutput.bluetooth());
+				check(!out.isEmpty(), "the sound output device is detected");
+				// let the clock settle over a few real Spotify reports, then compare drift
+				ctx.waitTicks(20 * 14);
+				long drift = ctx.computeOnClient(mc -> LyricraftClient.get().tracker.lastDriftMs());
+				double rate = ctx.computeOnClient(mc -> LyricraftClient.get().tracker.rate());
+				log("after 14 s: last drift " + drift + " ms, clock speed " + rate);
+				check(Math.abs(drift) < 120, "the lyrics clock stays within 120 ms of Spotify");
+				ctx.setScreen(() -> new LyricraftScreen(LyricraftClient.get(), null));
+				ctx.waitTicks(5);
+				clickWidget(ctx, "Sync");
+				ctx.waitTicks(5);
+				ctx.takeScreenshot("lyricraft-09-sync-tab");
+				ctx.setScreen(() -> null);
+			}
+
 			// ---------------------------------------------------------- every look and theme
 			ctx.runOnClient(mc -> {
 				cfg.cardX = 0f;

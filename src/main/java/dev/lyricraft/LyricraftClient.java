@@ -34,7 +34,7 @@ public final class LyricraftClient implements ClientModInitializer {
 	public final PlaybackTracker tracker = new PlaybackTracker();
 	public final SyncMemory sync = new SyncMemory(config);
 	public final VibeEngine vibe = new VibeEngine();
-	private final LyricsFetcher fetcher = new LyricsFetcher();
+	private final LyricsFetcher fetcher = new LyricsFetcher(config);
 
 	/** Lyrics for the current track; {@code null} while loading. */
 	private volatile Lyrics lyrics;
@@ -83,6 +83,13 @@ public final class LyricraftClient implements ClientModInitializer {
 
 	private static KeyMapping register(String name, int key, KeyMapping.Category category) {
 		return KeyMappingHelper.registerKeyMapping(new KeyMapping(name, InputConstants.Type.KEYBOARD, key, category));
+	}
+
+	/** Look the current song's lyrics up again (after changing lyric settings). */
+	public void reloadLyrics() {
+		fetcher.clearCache();
+		MediaSnapshot now = tracker.current();
+		if (now != null) loadLyrics(now);
 	}
 
 	private void loadLyrics(MediaSnapshot track) {
@@ -170,7 +177,7 @@ public final class LyricraftClient implements ClientModInitializer {
 	/** Timing for the song that's playing: remembered for this song, or your learned default. */
 	public int currentOffsetMs() {
 		MediaSnapshot now = tracker.current();
-		return now == null ? config.offsetMs : sync.offsetFor(now.trackKey());
+		return now == null ? sync.defaultOffset() : sync.offsetFor(now.trackKey());
 	}
 
 	private void changeOffset(int delta) {
@@ -180,8 +187,9 @@ public final class LyricraftClient implements ClientModInitializer {
 			return;
 		}
 		int ms = sync.nudge(now.trackKey(), delta);
+		int def = sync.defaultOffset();
 		showToast("Lyrics " + (ms > 0 ? "+" : "") + ms + " ms · remembered (default now "
-				+ (config.offsetMs > 0 ? "+" : "") + config.offsetMs + ")");
+				+ (def > 0 ? "+" : "") + def + (dev.lyricraft.media.AudioOutput.bluetooth() ? " for Bluetooth)" : ")"));
 	}
 
 	public void showToast(String message) {

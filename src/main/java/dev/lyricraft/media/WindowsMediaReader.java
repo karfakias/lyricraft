@@ -37,6 +37,7 @@ final class WindowsMediaReader implements MediaReader {
 
 		try (BufferedReader in = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
 			String line;
+			long lastRaw = Long.MIN_VALUE, lastUpd = Long.MIN_VALUE;
 			while (!Thread.currentThread().isInterrupted() && (line = in.readLine()) != null) {
 				line = line.trim();
 				if (line.isEmpty() || line.charAt(0) != '{') continue;
@@ -46,11 +47,29 @@ final class WindowsMediaReader implements MediaReader {
 						sink.accept(null);
 						continue;
 					}
+					boolean playing = o.get("playing").getAsBoolean();
+					long upd = o.has("upd") ? o.get("upd").getAsLong() : 0;
+					long raw = o.has("raw") ? o.get("raw").getAsLong() : 0;
+					long nowNanos = System.nanoTime();
+					long pos;
+					boolean fresh;
+					if (upd > 0) {
+						// Spotify said "I was at <raw> at wall-clock time <upd>". Work the position out
+						// right now, here, so the time the line spent in the pipe doesn't make us late.
+						long since = Math.max(0, System.currentTimeMillis() - upd);
+						pos = playing ? raw + since : raw;
+						fresh = raw != lastRaw || upd != lastUpd;
+						lastRaw = raw;
+						lastUpd = upd;
+					} else {
+						pos = o.get("pos").getAsLong(); // player without timestamps: every reading counts
+						fresh = true;
+					}
 					MediaSnapshot snap = new MediaSnapshot(
 							str(o, "app"), str(o, "title"), str(o, "artist"), str(o, "album"),
-							o.get("pos").getAsLong(), o.get("dur").getAsLong(),
-							o.get("playing").getAsBoolean(), System.nanoTime());
+							pos, o.get("dur").getAsLong(), playing, nowNanos, fresh);
 					CoverArt.offer(snap.trackKey(), str(o, "cover"));
+					if (o.has("bt")) AudioOutput.update(str(o, "out"), o.get("bt").getAsBoolean());
 					sink.accept(snap);
 				} catch (RuntimeException e) {
 					LyricraftClient.LOG.debug("Bad media line: {}", line);

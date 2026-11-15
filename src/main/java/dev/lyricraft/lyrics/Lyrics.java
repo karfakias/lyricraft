@@ -52,19 +52,53 @@ public final class Lyrics {
 	private static final long MAX_LINE_MS = 7000;
 
 	private static final Pattern TIME = Pattern.compile("\\[(\\d{1,3}):(\\d{1,2})(?:[.:](\\d{1,3}))?]");
+	/** [offset:+300] — "everything in this file is 300 ms late, show it sooner". */
+	private static final Pattern OFFSET = Pattern.compile("(?i)^\\s*\\[offset:\\s*([+-]?\\d+)\\s*]");
+
+	/** One timestamp from an LRC file. An empty text marks the end of the previous line. */
+	public record Stamp(long ms, String text) {}
 
 	public final Kind kind;
 	public final List<Line> lines;
+	/** How many lyric versions were combined into these timings (1 = just one source). */
+	public final int versions;
+	/** Where the lyrics came from, for the menu (e.g. "LRCLIB", "LRCLIB + NetEase"). */
+	public final String source;
 
 	private Lyrics(Kind kind, List<Line> lines) {
+		this(kind, lines, 0, "");
+	}
+
+	private Lyrics(Kind kind, List<Line> lines, int versions, String source) {
 		this.kind = kind;
 		this.lines = lines;
+		this.versions = versions;
+		this.source = source;
+	}
+
+	/** Same lyrics, labelled with how they were made. */
+	public Lyrics withInfo(int versions, String source) {
+		return new Lyrics(kind, lines, versions, source);
 	}
 
 	public static Lyrics parseLrc(String lrc, long durationMs) {
-		record Stamp(long ms, String text) {}
+		return build(parseStamps(lrc), durationMs);
+	}
+
+	/** Every timestamp in an LRC file, sorted, with the file's [offset:] already applied. */
+	public static List<Stamp> parseStamps(String lrc) {
 		List<Stamp> stamps = new ArrayList<>();
+		long offset = 0;
 		for (String raw : lrc.split("\\r?\\n")) {
+			Matcher off = OFFSET.matcher(raw);
+			if (off.find()) {
+				try {
+					offset = Math.clamp(Long.parseLong(off.group(1)), -10_000, 10_000);
+				} catch (NumberFormatException ignored) {
+					// keep 0
+				}
+				continue;
+			}
 			Matcher m = TIME.matcher(raw);
 			List<Long> times = new ArrayList<>();
 			int textStart = 0;
@@ -84,9 +118,18 @@ public final class Lyrics {
 			String text = raw.substring(textStart).trim();
 			for (long t : times) stamps.add(new Stamp(t, text));
 		}
-		if (stamps.isEmpty()) return NOT_FOUND;
+		if (offset != 0) {
+			// a positive offset means the lyrics should appear sooner
+			final long o = offset;
+			stamps.replaceAll(s -> new Stamp(Math.max(0, s.ms - o), s.text));
+		}
 		stamps.sort((a, b) -> Long.compare(a.ms, b.ms));
+		return stamps;
+	}
 
+	/** Turns sorted timestamps into lines (blank stamps end the line before them). */
+	public static Lyrics build(List<Stamp> stamps, long durationMs) {
+		if (stamps.isEmpty()) return NOT_FOUND;
 		List<Line> lines = new ArrayList<>();
 		for (int i = 0; i < stamps.size(); i++) {
 			Stamp s = stamps.get(i);
@@ -95,7 +138,28 @@ public final class Lyrics {
 			long end = Math.min(next, s.ms + MAX_LINE_MS);
 			lines.add(new Line(s.ms, Math.max(end, s.ms + 300), s.text));
 		}
-		return lines.isEmpty() ? NOT_FOUND : new Lyrics(Kind.SYNCED, Collections.unmodifiableList(lines));
+		return lines.isEmpty() ? NOT_FOUND : new Lyrics(Kind.SYNCED, Collections.unmodifiableList(lines), 1, "");
+	}
+
+	/**
+	 * These lyrics as an LRC file, every timestamp moved by {@code shiftMs} (used to share a
+	 * timing fix back to LRCLIB). Gaps after a line become a blank "end" stamp.
+	 */
+	public String toLrc(long shiftMs) {
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < lines.size(); i++) {
+			Line l = lines.get(i);
+			sb.append(stamp(l.startMs + shiftMs)).append(' ').append(l.text).append('\n');
+			long nextStart = i + 1 < lines.size() ? lines.get(i + 1).startMs : Long.MAX_VALUE;
+			if (l.endMs + 250 < nextStart && i + 1 < lines.size()) sb.append(stamp(l.endMs + shiftMs)).append('\n');
+		}
+		return sb.toString();
+	}
+
+	private static String stamp(long ms) {
+		ms = Math.max(0, ms);
+		long cs = Math.round(ms / 10.0);
+		return String.format("[%02d:%02d.%02d]", cs / 6000, (cs / 100) % 60, cs % 100);
 	}
 
 	/** Index of the line being sung at {@code posMs}, or -1 before the first line / during breaks. */
