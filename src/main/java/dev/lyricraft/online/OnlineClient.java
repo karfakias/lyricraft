@@ -48,6 +48,24 @@ public final class OnlineClient {
 
 	public enum Status { OFF, NOT_SET_UP, CONNECTING, ONLINE, OFFLINE, NOT_VERIFIED }
 
+	/** An Echoes panel another player placed: a line pinned to a spot in their world. */
+	public record RemoteEcho(UUID owner, double x, double y, double z, String dim, String line,
+	                         long durMs, long elapsedMs, float wBlocks, float hBlocks, long receivedNanos) {
+		public long elapsedNow() {
+			return elapsedMs + (System.nanoTime() - receivedNanos) / 1_000_000;
+		}
+
+		public float ageSeconds() {
+			return (System.nanoTime() - receivedNanos) / 1e9f;
+		}
+	}
+
+	/** Limits for other players' Echoes, so a busy server can't flood your screen. */
+	public static final int ECHOES_PER_PLAYER = 4, ECHOES_TOTAL = 16;
+	public static final float ECHO_LIFETIME_S = 40f;
+	private final Map<UUID, java.util.ArrayDeque<RemoteEcho>> echoes = new ConcurrentHashMap<>();
+	private long lastEchoSent;
+
 	private final LyricraftClient mod;
 	private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(8)).build();
 	private final Map<UUID, Remote> remotes = new ConcurrentHashMap<>();
@@ -99,6 +117,10 @@ public final class OnlineClient {
 		myId = id;
 		status = Status.ONLINE;
 		remotes.put(id, new Remote(id, song, artist, line, durMs, elapsedMs, System.nanoTime()));
+	}
+
+	public boolean demoActive() {
+		return demo;
 	}
 
 	public void tick(Minecraft mc) {
@@ -202,6 +224,7 @@ public final class OnlineClient {
 
 	private void failed() {
 		socket = null;
+		echoes.clear();
 		if (status != Status.NOT_VERIFIED) status = Status.OFFLINE;
 		remotes.clear();
 		retryAt = System.currentTimeMillis() + backoffMs;
@@ -211,6 +234,7 @@ public final class OnlineClient {
 	public void disconnect() {
 		WebSocket ws = socket;
 		socket = null;
+		echoes.clear();
 		remotes.clear();
 		lastWatch = Set.of();
 		lastStateKey = "";
@@ -222,6 +246,91 @@ public final class OnlineClient {
 		lastStateKey = "";
 		retryAt = 0; // try again right away after changing a setting
 		if (!mod.config.online) disconnect();
+	}
+
+	// ------------------------------------------------------------------ Echoes sharing
+
+	/** Share an Echoes panel you just placed (only if you share your lyrics and your Echoes). */
+	public void sendEcho(double x, double y, double z, String dim, String line, long durMs, long elapsedMs, float w, float h) {
+		Config cfg = mod.config;
+		if (demo || status != Status.ONLINE || !cfg.shareLyrics || !cfg.shareEchoes) return;
+		long now = System.currentTimeMillis();
+		if (now - lastEchoSent < 1500) return; // same limit as the service
+		lastEchoSent = now;
+		JsonObject o = new JsonObject();
+		o.addProperty("t", "echo");
+		JsonArray pos = new JsonArray();
+		pos.add(x);
+		pos.add(y);
+		pos.add(z);
+		o.add("pos", pos);
+		o.addProperty("dim", dim);
+		o.addProperty("line", line);
+		o.addProperty("dur", durMs);
+		o.addProperty("elapsed", elapsedMs);
+		o.addProperty("w", w);
+		o.addProperty("h", h);
+		send(o);
+	}
+
+	/** Other players' Echoes panels that are still fresh. */
+	public java.util.List<RemoteEcho> echoes() {
+		if (status != Status.ONLINE) return java.util.List.of();
+		java.util.List<RemoteEcho> out = new java.util.ArrayList<>();
+		for (var q : echoes.values()) {
+			synchronized (q) {
+				q.removeIf(e -> e.ageSeconds() > ECHO_LIFETIME_S);
+				out.addAll(q);
+			}
+		}
+		return out;
+	}
+
+	private void addEcho(JsonObject m) {
+		try {
+			UUID id = UUID.fromString(m.get("id").getAsString());
+			if (id.equals(myId) && !demo) return;
+			JsonArray p = m.getAsJsonArray("pos");
+			double x = p.get(0).getAsDouble(), y = p.get(1).getAsDouble(), z = p.get(2).getAsDouble();
+			if (!Double.isFinite(x) || !Double.isFinite(y) || !Double.isFinite(z) || Math.abs(x) > 3e7 || Math.abs(z) > 3e7 || Math.abs(y) > 4096) return;
+			String dim = m.get("dim").getAsString();
+			if (!dim.matches("[a-z0-9_.-]{1,32}:[a-z0-9_./-]{1,64}")) return;
+			String line = SafeText.clean(m.get("line").getAsString(), 200);
+			if (line.isEmpty()) return;
+			long dur = Math.clamp(m.get("dur").getAsLong(), 0, 60_000);
+			long elapsed = Math.clamp(m.get("elapsed").getAsLong(), -60_000, 60_000);
+			float w = (float) Math.clamp(m.get("w").getAsDouble(), 0.2, 12), h = (float) Math.clamp(m.get("h").getAsDouble(), 0.1, 3);
+			putEcho(new RemoteEcho(id, x, y, z, dim, line, dur, elapsed, w, h, System.nanoTime()));
+		} catch (RuntimeException e) {
+			LyricraftClient.LOG.debug("Lyricraft online: bad echo: {}", e.toString());
+		}
+	}
+
+	private void putEcho(RemoteEcho e) {
+		var q = echoes.computeIfAbsent(e.owner(), k -> new java.util.ArrayDeque<>());
+		synchronized (q) {
+			q.addLast(e);
+			while (q.size() > ECHOES_PER_PLAYER) q.removeFirst();
+		}
+		// global cap: drop the oldest panels of anyone
+		while (echoes.values().stream().mapToInt(java.util.ArrayDeque::size).sum() > ECHOES_TOTAL) {
+			RemoteEcho oldest = null;
+			for (var qq : echoes.values()) synchronized (qq) {
+				if (!qq.isEmpty() && (oldest == null || qq.peekFirst().receivedNanos() < oldest.receivedNanos())) oldest = qq.peekFirst();
+			}
+			if (oldest == null) break;
+			var oq = echoes.get(oldest.owner());
+			synchronized (oq) {
+				oq.removeFirst();
+			}
+		}
+	}
+
+	/** Pretend a player placed this panel (screenshots/tests only). */
+	public void addDemoEcho(UUID owner, double x, double y, double z, String dim, String line, long durMs, long elapsedMs, float w, float h) {
+		demo = true;
+		status = Status.ONLINE;
+		putEcho(new RemoteEcho(owner, x, y, z, dim, line, durMs, elapsedMs, w, h, System.nanoTime()));
 	}
 
 	// ------------------------------------------------------------------ outgoing
@@ -324,7 +433,12 @@ public final class OnlineClient {
 				for (JsonElement el : m.getAsJsonArray("players")) apply(el.getAsJsonObject());
 			}
 			case "state" -> apply(m);
-			case "gone" -> remotes.remove(UUID.fromString(m.get("id").getAsString()));
+			case "gone" -> {
+				UUID gone = UUID.fromString(m.get("id").getAsString());
+				remotes.remove(gone);
+				echoes.remove(gone);
+			}
+			case "echo" -> addEcho(m);
 			default -> { }
 		}
 	}

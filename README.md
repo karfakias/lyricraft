@@ -49,9 +49,11 @@ Vinyl, Cassette, VHS, Synthwave, Visualizer, Lo-fi Rain, Starry Night, Oscillosc
 
 Players who use Lyricraft get a green ♫ after their name, in the tab list and above their head. If they're listening to something, the line they're hearing right now floats above their head, filling in as it's sung, with the song name under it. Yours shows to them too, and you can see your own in third person (F5).
 
-This works on any server without a server mod, through a small Lyricraft online service. Your Minecraft login never leaves the game: Lyricraft proves who you are the same way joining a server does. Only your song, artist and current line are shared, and only with players who are on the same server as you (you both see each other in the tab list). Nobody can look you up from elsewhere, and nothing is stored. Other players never see your IP address.
+If a friend near you uses the Echoes style, you see their panels too, in the same spots in the world, with their name and their own colour. They only show for players close by (48 blocks) in the same world, at most 12 at a time, and they never cover your own panels or each other: they slide out of the way, or stay hidden if there's no room.
 
-Everything is in the **Online** tab: turn sharing off to only show the badge, hide other players' lyrics, or switch the online part off completely.
+This works on any server without a server mod, through a small Lyricraft online service. Your Minecraft login never leaves the game: Lyricraft proves who you are the same way joining a server does. Only your song, artist, current line and where your Echoes panels are placed are shared, and only with players who are on the same server as you (you both see each other in the tab list). Nobody can look you up from elsewhere, and nothing is stored. Other players never see your IP address.
+
+Everything is in the **Online** tab: turn sharing off to only show the badge, stop sharing your Echoes, hide other players' lyrics or Echoes, or switch the online part off completely.
 
 ## Timing
 

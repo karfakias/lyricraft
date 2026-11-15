@@ -75,6 +75,10 @@ public final class Config {
 	public boolean showBadges = true;
 	/** Show other players' current line above their head. */
 	public boolean showOthersLyrics = true;
+	/** Let nearby Lyricraft players see your Echoes panels in the world (needs Share what I'm listening to). */
+	public boolean shareEchoes = true;
+	/** Show other players' Echoes panels where they placed them. */
+	public boolean showOthersEchoes = true;
 	/** Address of the online service (your own Cloudflare Worker, see server/README.md). */
 	public String onlineServer = "https://lyricraft.lyricraft-server.workers.dev";
 	/** Keep the playback clock locked to Spotify by measuring and correcting drift. */

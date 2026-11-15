@@ -61,6 +61,7 @@ public final class LyricsHud implements HudElement {
 
 	private final NowPlayingCard card = new NowPlayingCard();
 	private final OverheadLyrics overhead = new OverheadLyrics();
+	private final RemoteEchoes remoteEchoes = new RemoteEchoes();
 	private static final MediaSnapshot DEMO = new MediaSnapshot("Spotify.exe", "Your song here", "Play something on Spotify",
 			"", 0, 200_000, true, 0);
 	private float visibility = 0f;
@@ -169,9 +170,10 @@ public final class LyricsHud implements HudElement {
 			}
 		}
 		lyricsOnScreen = drewLyrics;
-		// other Lyricraft players' current line above their heads
+		// other Lyricraft players: their Echoes panels in the world, and their line above their heads
 		if (!menuOpen && mc.level != null) {
 			projector.update(mc.gameRenderer.mainCamera(), gw, gh);
+			remoteEchoes.render(g, mc.font, mc, projector, cfg, mod.online, dt, 1f);
 			overhead.render(g, mc.font, mc, projector, cfg, mod.online, delta.getGameTimeDeltaPartialTick(true),
 					cfg.accentColor & 0xFFFFFF);
 		}

@@ -378,6 +378,12 @@ public final class LyricraftScreen extends Screen implements LyricraftUi {
 		y += 22;
 		toggle(cx0, y, cw, "Show other players' lyrics", () -> cfg().showOthersLyrics, v -> cfg().showOthersLyrics = v,
 				"Their current line and song, floating above their head.");
+		y += 22;
+		toggle(cx0, y, cw, "Share my Echoes", () -> cfg().shareEchoes, v -> cfg().shareEchoes = v,
+				"When you use the Echoes style, nearby Lyricraft players see your panels in the same spots. Needs \"Share what I'm listening to\".");
+		y += 22;
+		toggle(cx0, y, cw, "Show other players' Echoes", () -> cfg().showOthersEchoes, v -> cfg().showOthersEchoes = v,
+				"See the Echoes panels of Lyricraft players near you, with their name. They never cover your own.");
 		y += 26;
 		onlineNumbersY = y;
 		y += 2 * 12 + 4;

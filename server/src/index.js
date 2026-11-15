@@ -23,6 +23,7 @@ const LIMITS = {
 	msgsPer10s: 40, messageBytes: 8192,
 	connPerIp: 8, newConnPerIpPerMin: 20, totalConnections: 20000,
 	loginTimeoutMs: 15_000,
+	echoGapMs: 1500, worldLimit: 30_000_000,
 };
 
 export default {
@@ -178,6 +179,17 @@ export class Hub {
 			return;
 		}
 
+		if (msg.t === "echo") {
+			// one Echoes panel the player just placed, so nearby friends can see it in the same spot
+			if (now - (a.lastEcho || 0) < LIMITS.echoGapMs) return; // at most one every 1.5 s
+			const echo = cleanEcho(msg);
+			if (!echo) return;
+			a.lastEcho = now;
+			ws.serializeAttachment(a);
+			this.broadcast(a, { t: "echo", id: a.id, ...echo }, null, true);
+			return;
+		}
+
 		if (msg.t === "state") {
 			// sharing off = just the badge; otherwise song (+ the current line, if one is being sung)
 			a.state = msg.sharing === false
@@ -208,7 +220,7 @@ export class Hub {
 	 * Send something about player `a` to: themselves, and every player who can see them and
 	 * whom they can see (mutual). Nobody else learns anything about them.
 	 */
-	broadcast(a, message, skip) {
+	broadcast(a, message, skip, othersOnly = false) {
 		const text = JSON.stringify(message);
 		const theySee = new Set();
 		for (const ws of this.ctx.getWebSockets()) {
@@ -220,7 +232,7 @@ export class Hub {
 			const o = this.att(ws);
 			if (!o.id) continue;
 			const mutual = theySee.has(o.id) && (o.watch || []).includes(a.id);
-			if (o.id === a.id || mutual) safeSend(ws, text);
+			if ((o.id === a.id && !othersOnly) || mutual) safeSend(ws, text);
 		}
 	}
 
@@ -297,6 +309,26 @@ function cleanText(s, max) {
 		.replace(/\s+/g, " ")
 		.trim()
 		.slice(0, max);
+}
+
+/** Checks and cleans one Echoes panel: a real position inside the world, a valid dimension, clean text. */
+function cleanEcho(m) {
+	const p = Array.isArray(m.pos) ? m.pos : null;
+	if (!p || p.length !== 3 || !p.every((v) => Number.isFinite(v) && Math.abs(v) <= LIMITS.worldLimit)) return null;
+	if (typeof m.dim !== "string" || !/^[a-z0-9_.-]{1,32}:[a-z0-9_./-]{1,64}$/.test(m.dim)) return null;
+	if (typeof m.line !== "string") return null;
+	const line = cleanText(m.line, LIMITS.line);
+	if (!line) return null;
+	const num = (v, lo, hi, d) => (Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d);
+	return {
+		pos: p.map((v) => Math.round(v * 100) / 100),
+		dim: m.dim,
+		line,
+		dur: Math.round(num(m.dur, 0, 60_000, 3000)),
+		elapsed: Math.round(num(m.elapsed, -60_000, 60_000, 0)),
+		w: Math.round(num(m.w, 0.2, 12, 2) * 100) / 100,
+		h: Math.round(num(m.h, 0.1, 3, 0.4) * 100) / 100,
+	};
 }
 
 function clean(s) {

@@ -119,6 +119,30 @@ check(cleaned.state.line.length === 200, "long text is cut to size");
 b.send(JSON.stringify({ t: "state", sharing: true, line: "x".repeat(20000) }));
 check(await a.nothing((m) => m.state?.line?.startsWith("xxxx")), "an oversized message is ignored");
 
+// Echoes panels
+await new Promise((r) => setTimeout(r, 1600));
+b.send({ t: "echo", pos: [10.5, 70.2, -3.25], dim: "minecraft:overworld", line: "§cEcho §lline", dur: 3000, elapsed: -200, w: 2.5, h: 0.4 });
+const echo = await a.next((m) => m.t === "echo" && m.id === B).catch(() => null);
+check(!!echo && echo.pos[0] === 10.5 && echo.dim === "minecraft:overworld", "A gets B's Echoes panel with its spot in the world");
+check(echo && echo.line === "Echo line", "the panel text is cleaned");
+check(await b.nothing((m) => m.t === "echo"), "you don't get your own panel echoed back");
+b.send({ t: "echo", pos: [11, 70, -3], dim: "minecraft:overworld", line: "too soon", dur: 3000 });
+check(await a.nothing((m) => m.t === "echo" && m.line === "too soon"), "at most one panel every 1.5 s");
+await new Promise((r) => setTimeout(r, 1600));
+for (const bad of [
+	{ pos: [1e12, 70, 0], dim: "minecraft:overworld", line: "far" },
+	{ pos: [1, "x", 0], dim: "minecraft:overworld", line: "nan" },
+	{ pos: [1, 70, 0], dim: "<script>", line: "dim" },
+	{ pos: [1, 70, 0], dim: "minecraft:overworld", line: "" },
+]) b.send({ t: "echo", dur: 3000, ...bad });
+check(await a.nothing((m) => m.t === "echo"), "broken or out-of-world panels are refused");
+await new Promise((r) => setTimeout(r, 1600));
+b.send({ t: "watch", ids: [] });
+await a.next((m) => m.t === "gone" && m.id === B);
+b.send({ t: "echo", pos: [1, 70, 0], dim: "minecraft:overworld", line: "hidden", dur: 3000 });
+check(await a.nothing((m) => m.t === "echo"), "panels only go to players who see each other");
+b.send({ t: "watch", ids: [A] });
+
 // B leaves
 b.ws.close();
 check(!!(await a.next((m) => m.t === "gone" && m.id === B).catch(() => null)), "A is told when B goes offline");

@@ -238,7 +238,7 @@ public final class LyricraftClientGameTest implements FabricClientGameTest {
 				});
 				log("name tag: " + tag);
 				check(tag.endsWith("♫"), "the name tag shows the ♫ badge");
-				if (playing) {
+				if (ctx.computeOnClient(mc -> LyricraftClient.get().tracker.isPlaying())) { // shared only while playing
 					ctx.waitFor(mc -> {
 						var r = LyricraftClient.get().online.remote(me);
 						return r != null && r.song() != null;
@@ -264,6 +264,39 @@ public final class LyricraftClientGameTest implements FabricClientGameTest {
 			} else {
 				log("no local online service on :8787: skipped the online checks");
 			}
+
+			// ---------------------------------------------------------- friends' Echoes panels
+			// (demo panels: this switches the online client into demo mode, so it runs after the online checks)
+			ctx.runOnClient(mc -> {
+				cfg.showOthersEchoes = true;
+				var on = LyricraftClient.get().online;
+				var look = mc.player.getLookAngle();
+				double bx = mc.player.getX() + look.x * 5, by = mc.player.getEyeY(), bz = mc.player.getZ() + look.z * 5;
+				String dim = mc.level.dimension().identifier().toString();
+				String[] lines = {"we were singing in the rain", "under the glass harbor lights", "hold on to the night", "and the city hums along"};
+				// five friends all dropping panels on almost the same spot: 20 sent, the caps keep 16, at most 12 drawn
+				for (int f = 0; f < 5; f++) {
+					java.util.UUID id = new java.util.UUID(0x5eed, f + 1);
+					for (int i = 0; i < 4; i++)
+						on.addDemoEcho(id, bx + f * 0.05, by + i * 0.05, bz, dim, lines[(f + i) % lines.length], 4000, 500L * i, 2.5f, 0.4f);
+				}
+				// one in another dimension, which must never show
+				on.addDemoEcho(new java.util.UUID(0x5eed, 99), bx, by, bz, "minecraft:the_nether", "wrong world", 4000, 0, 2.5f, 0.4f);
+			});
+			ctx.waitTicks(60);
+			int stored = ctx.computeOnClient(mc -> LyricraftClient.get().online.echoes().size());
+			check(stored <= dev.lyricraft.online.OnlineClient.ECHOES_TOTAL, "friends' panels are capped (" + stored + " kept)");
+			var placed = ctx.computeOnClient(mc -> dev.lyricraft.hud.RemoteEchoes.placedLastFrame());
+			log("friends' panels drawn: " + placed.size());
+			check(!placed.isEmpty() && placed.size() <= 12, "some friends' panels are drawn, at most 12");
+			boolean overlap = false;
+			for (int i = 0; i < placed.size(); i++)
+				for (int j = i + 1; j < placed.size(); j++) {
+					float[] p = placed.get(i), q = placed.get(j);
+					if (p[0] < q[2] && q[0] < p[2] && p[1] < q[3] && q[1] < p[3]) overlap = true;
+				}
+			check(!overlap, "friends' panels never overlap each other");
+			ctx.takeScreenshot("lyricraft-13-friends-echoes");
 
 			// ---------------------------------------------------------- every look and theme
 			ctx.runOnClient(mc -> {
