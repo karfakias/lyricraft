@@ -1,6 +1,7 @@
 package dev.lyricraft.hud.style;
 
 import dev.lyricraft.hud.Draw;
+import dev.lyricraft.hud.GlassPanel;
 import dev.lyricraft.hud.HudSpace;
 import dev.lyricraft.hud.Projector;
 import dev.lyricraft.lyrics.Lyrics;
@@ -12,11 +13,13 @@ import org.joml.Vector3f;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Random;
 
 /**
- * ECHOES: every new line materialises as a hologram right where you're looking and then
- * <i>stays pinned in the world</i>, projected from a little light beam. Look around and the
- * song's last lines are still floating where you left them, linked by a faint trail.
+ * ECHOES: every new line opens as a frosted glass panel right where you're looking and then
+ * <i>stays pinned in the world</i>. The words pop in one by one as they're sung, the panel
+ * glows on every word and sheds little sparks, and once the next line arrives it dims and
+ * slowly drifts upward. A glowing thread links the panels in the order they were sung.
  *
  * New lines never land on top of older ones (or the Now Playing card, the hotbar or toasts):
  * if the spot in front of you is taken, the line picks the nearest free spot instead.
@@ -27,9 +30,12 @@ public final class EchoesStyle implements LyricStyle {
 	private static final float TEXT_BLOCKS = 0.16f;
 	private static final int MAX_PANELS = 7;
 	private static final float LIFETIME_S = 60f;
-	private static final float FADE_OUT_S = 3f;
+	private static final float FADE_OUT_S = 2.2f;
 	private static final double MAX_DIST = 40;
 	private static final float PAD = 10f; // text padding inside the panel, in font pixels
+	/** How far an old panel floats up (blocks), and how long that takes. */
+	private static final float DRIFT_BLOCKS = 0.3f, DRIFT_S = 6f;
+	private static final int MAX_SPARKS = 48;
 
 	private static final class Panel {
 		final int index;
@@ -38,6 +44,8 @@ public final class EchoesStyle implements LyricStyle {
 		final float wBlocks, hBlocks;
 		final float seed;
 		long diedAt = -1;
+		long retiredAt = -1; // when a newer line took over
+		int lastWord = -1;
 		float coverFade = 1f;
 
 		Panel(int index, Vec3 pos, long born, float wBlocks, float hBlocks) {
@@ -56,6 +64,32 @@ public final class EchoesStyle implements LyricStyle {
 		boolean alive() {
 			return diedAt < 0;
 		}
+
+		/** Where the panel is now: old panels float up a little, dying ones a bit more. */
+		Vec3 posNow(long now) {
+			float lift = 0f;
+			if (retiredAt >= 0) lift += DRIFT_BLOCKS * Draw.easeOutCubic(Math.clamp((now - retiredAt) / 1e9f / DRIFT_S, 0f, 1f));
+			if (diedAt >= 0) lift += 0.35f * Math.clamp((now - diedAt) / 1e9f / FADE_OUT_S, 0f, 1f);
+			return lift == 0f ? pos : pos.add(0, lift, 0);
+		}
+	}
+
+	/** A little spark or note that drifts off the current panel. */
+	private static final class Spark {
+		Vec3 pos;
+		final Vec3 vel;
+		final float life;
+		final boolean note;
+		final float wobble;
+		float age;
+
+		Spark(Vec3 pos, Vec3 vel, float life, boolean note, float wobble) {
+			this.pos = pos;
+			this.vel = vel;
+			this.life = life;
+			this.note = note;
+			this.wobble = wobble;
+		}
 	}
 
 	/** Where a panel lands on screen this frame. */
@@ -66,10 +100,12 @@ public final class EchoesStyle implements LyricStyle {
 	}
 
 	private final List<Panel> panels = new ArrayList<>();
+	private final List<Spark> sparks = new ArrayList<>();
+	private final Random rng = new Random();
 	private Lyrics forLyrics;
 	private Object forLevel;
 	private int lastSlot = Integer.MIN_VALUE;
-	private float glitch;
+	private float sparkDebt;
 	private final List<float[]> drawnRects = new ArrayList<>();
 
 	@Override
@@ -83,6 +119,7 @@ public final class EchoesStyle implements LyricStyle {
 		int slot = f.slot();
 		if (f.lyrics() != forLyrics || level != forLevel || slot < lastSlot - 1) {
 			panels.clear();
+			sparks.clear();
 			forLyrics = f.lyrics();
 			forLevel = level;
 			lastSlot = Integer.MIN_VALUE;
@@ -108,19 +145,20 @@ public final class EchoesStyle implements LyricStyle {
 		}
 		panels.removeIf(pn -> !pn.alive() && (now - pn.diedAt) / 1e9f > FADE_OUT_S);
 
-		if (Math.random() < f.dt() * 0.35) glitch = 1f;
-		glitch = Draw.approach(glitch, 0f, f.dt() * 6f);
-
 		Panel newest = null;
 		for (Panel pn : panels) if (pn.alive()) newest = pn;
 
-		drawTrail(f, now);
+		drawThread(f, now);
 
 		// far ones first so near ones draw on top
 		List<Panel> order = new ArrayList<>(panels);
-		order.sort(Comparator.comparingDouble((Panel pn) -> -pn.pos.distanceToSqr(cam)));
+		order.sort(Comparator.comparingDouble((Panel pn) -> -pn.posNow(now).distanceToSqr(cam)));
 		drawnRects.clear();
 		for (Panel pn : order) draw(f, pn, pn == newest, now);
+
+		updateSparks(f, newest, now);
+		drawSparks(f);
+
 		// mark our panels as taken so friends' panels keep clear of them
 		for (float[] r : drawnRects) HudSpace.reserve(r[0], r[1], r[2], r[3]);
 	}
@@ -152,8 +190,11 @@ public final class EchoesStyle implements LyricStyle {
 		List<Rect> taken = new ArrayList<>();
 		for (Panel pn : panels) {
 			if (!pn.alive()) continue;
-			Rect r = rectOf(p, pn.pos, pn.wBlocks, pn.hBlocks);
+			// old panels drift up, so count the spot they'll end up in too
+			Rect r = rectOf(p, pn.posNow(now), pn.wBlocks, pn.hBlocks);
 			if (r != null) taken.add(r);
+			Rect later = rectOf(p, pn.pos.add(0, DRIFT_BLOCKS, 0), pn.wBlocks, pn.hBlocks);
+			if (later != null) taken.add(later);
 		}
 
 		Vec3 chosen = null;
@@ -182,10 +223,11 @@ public final class EchoesStyle implements LyricStyle {
 			Rect r = rectOf(p, base, wBlocks, hBlocks);
 			for (Panel pn : panels) {
 				if (!pn.alive()) continue;
-				Rect t = rectOf(p, pn.pos, pn.wBlocks, pn.hBlocks);
-				if (r == null || t == null || r.hits(t, 4)) pn.diedAt = now - 2_000_000_000L; // quick fade
+				Rect t = rectOf(p, pn.posNow(now), pn.wBlocks, pn.hBlocks);
+				if (r == null || t == null || r.hits(t, 4)) pn.diedAt = now - 1_200_000_000L; // quick fade
 			}
 		}
+		for (Panel pn : panels) if (pn.retiredAt < 0) pn.retiredAt = now;
 		panels.add(new Panel(slot, chosen, now, wBlocks, hBlocks));
 		// let nearby Lyricraft friends see this panel in the same spot (if you share your Echoes)
 		var mc = Minecraft.getInstance();
@@ -203,50 +245,75 @@ public final class EchoesStyle implements LyricStyle {
 		return new Rect(pt.x() - hw, pt.y() - hh, pt.x() + hw, pt.y() + hh, pt.x(), pt.y(), pt.pxPerBlock());
 	}
 
-	// ------------------------------------------------------------------ drawing
+	// ------------------------------------------------------------------ the thread between panels
 
-	/** Faint dotted line connecting the echoes in the order they were sung. */
-	private void drawTrail(Frame f, long now) {
+	/** A soft glowing thread from each panel to the next (never across the glass), with a light running along it. */
+	private void drawThread(Frame f, long now) {
+		GuiGraphicsExtractor g = f.g();
 		Projector.Point prev = null;
+		Rect prevRect = null;
 		float prevVis = 0;
+		int n = 0;
+		int c0 = Draw.mix(f.accent(), 0xFFFFFF, 0.25f), c1 = Draw.mix(f.colorB(), f.accent(), 0.4f);
 		for (Panel pn : panels) {
-			Projector.Point pt = f.proj().project(pn.pos);
+			Vec3 at = pn.posNow(now);
+			Projector.Point pt = f.proj().project(at);
+			Rect rect = rectOf(f.proj(), at, pn.wBlocks, pn.hBlocks);
 			float vis = fade(pn, now) * f.vis();
-			if (pt != null && prev != null && pt.pxPerBlock() > 0) {
-				float a = Math.min(vis, prevVis) * 0.35f;
+			if (pt != null && pt.pxPerBlock() <= 0) pt = null;
+			if (pt != null && prev != null && rect != null && prevRect != null) {
+				float a = Math.min(vis, prevVis);
 				float dx = pt.x() - prev.x(), dy = pt.y() - prev.y();
-				float len = (float) Math.sqrt(dx * dx + dy * dy);
-				int dots = Math.min(60, (int) (len / 6));
-				float shift = (f.time() * 0.8f) % 1f;
-				for (int i = 0; i < dots; i++) {
-					float u = (i + shift) / dots;
-					float x = prev.x() + dx * u, y = prev.y() + dy * u;
-					f.g().fill(Math.round(x), Math.round(y), Math.round(x) + 1, Math.round(y) + 1,
-							Draw.argb(Draw.mix(f.colorA(), f.colorB(), u), a));
+				int segs = 24;
+				for (int i = 0; i < segs; i++) {
+					float u0 = i / (float) segs, u1 = (i + 1) / (float) segs, um = (u0 + u1) / 2f;
+					float mx = prev.x() + dx * um, my = prev.y() + dy * um;
+					if (inside(prevRect, mx, my) || inside(rect, mx, my)) continue; // stop at the panel edges
+					int col = Draw.mix(c0, c1, um);
+					float x0 = prev.x() + dx * u0, y0 = prev.y() + dy * u0, x1 = prev.x() + dx * u1, y1 = prev.y() + dy * u1;
+					Draw.line(g, x0, y0, x1, y1, 3f, Draw.argb(col, 0.06f * a));
+					Draw.line(g, x0, y0, x1, y1, 1f, Draw.argb(col, 0.26f * a));
 				}
+				// a little light travelling from the older panel to the newer one
+				float u = ((f.time() * 0.45f + n * 0.37f) % 1f);
+				float sx = prev.x() + dx * u, sy = prev.y() + dy * u;
+				if (!inside(prevRect, sx, sy) && !inside(rect, sx, sy)) {
+					float bright = (float) Math.sin(u * Math.PI);
+					Draw.circle(g, sx, sy, 2.2f, Draw.argb(c0, 0.22f * a * bright));
+					Draw.circle(g, sx, sy, 1f, Draw.argb(0xFFFFFF, 0.7f * a * bright));
+				}
+				n++;
 			}
 			prev = pt;
+			prevRect = rect;
 			prevVis = vis;
 		}
 	}
 
+	private static boolean inside(Rect r, float x, float y) {
+		return x > r.x0 - 3 && x < r.x1 + 3 && y > r.y0 - 3 && y < r.y1 + 3;
+	}
+
 	private static float fade(Panel pn, long now) {
 		float age = pn.age(now);
-		float in = Math.clamp(age / 0.25f, 0f, 1f);
+		float in = Math.clamp(age / 0.2f, 0f, 1f);
 		float out = pn.alive() ? 1f : 1f - Math.clamp((now - pn.diedAt) / 1e9f / FADE_OUT_S, 0f, 1f);
 		return in * out;
 	}
 
+	// ------------------------------------------------------------------ panels
+
 	private void draw(Frame f, Panel pn, boolean current, long now) {
-		Projector.Point pt = f.proj().project(pn.pos);
+		Projector.Point pt = f.proj().project(pn.posNow(now));
 		if (pt == null || pt.pxPerBlock() <= 0 || !f.proj().onScreen(pt, 250)) return;
 		Lyrics.Line line = f.line(pn.index);
 		if (line == null) return;
 		GuiGraphicsExtractor g = f.g();
 
 		float age = pn.age(now);
-		float dying = pn.alive() ? 0f : Math.clamp((now - pn.diedAt) / 1e9f / FADE_OUT_S, 0f, 1f);
-		float dim = current ? 1f : Math.max(0.28f, 0.66f - age / LIFETIME_S * 0.4f);
+		float retired = pn.retiredAt < 0 ? 0f : Math.clamp((now - pn.retiredAt) / 1e9f / 0.8f, 0f, 1f);
+		float dim = current ? 1f : Math.max(0.3f, 0.62f - age / LIFETIME_S * 0.35f);
+		dim = 1f + (dim - 1f) * (current ? 0f : retired); // dims smoothly instead of snapping
 		float vis = f.vis() * fade(pn, now) * dim;
 
 		float scale = pt.pxPerBlock() * TEXT_BLOCKS * f.cfg().scale / f.font().lineHeight;
@@ -256,12 +323,29 @@ public final class EchoesStyle implements LyricStyle {
 		scale = Draw.fitScale(textW, scale, f.width() * 0.85f);
 		if (scale < 0.15f) return;
 
-		// open like an old CRT: a bright line that unfolds vertically; close the same way
-		float open = Draw.easeOutBack(Math.clamp(age / 0.4f, 0f, 1f)) * (1f - Draw.easeOutCubic(dying));
+		// word timing (needed for the beat glow before drawing the glass)
+		float progress = f.active() == pn.index ? line.progress(f.posMs()) : (f.posMs() >= line.endMs() ? 1f : 0f);
+		List<Lyrics.Word> words = line.words();
+		float beat = 0f;
+		int sungWord = -1;
+		for (int i = 0; i < words.size(); i++) {
+			float since = (progress - words.get(i).start()) * line.durationMs() / 1000f;
+			if (since >= 0) sungWord = i;
+			if (since >= 0 && since < 0.3f) beat = Math.max(beat, 1f - since / 0.3f);
+		}
+		if (!current || progress >= 1f) beat = 0f;
+		if (current && sungWord > pn.lastWord) {
+			if (pn.lastWord >= 0 || sungWord == 0) burst(f, pn, now, 3);
+			pn.lastWord = sungWord;
+		}
+
+		// opening: the panel springs open from 85% size; old panels shrink a touch
+		float open = Draw.easeOutBack(Math.clamp(age / 0.35f, 0f, 1f));
+		float size = (0.85f + 0.15f * open) * (1f - 0.08f * retired) * (1f + 0.025f * beat);
 		float lh = f.font().lineHeight * scale;
-		float panelW = (textW + PAD * 2) * scale * Math.clamp(age / 0.18f, 0.08f, 1f);
-		float panelH = lh * 2.3f * Math.max(0.04f, open);
-		float bob = (float) Math.sin(f.time() * 1.2f + pn.seed * 6.28f) * 1.6f * scale;
+		float panelW = (textW + PAD * 2) * scale * size;
+		float panelH = lh * 2.3f * size;
+		float bob = (float) Math.sin(f.time() * 1.1f + pn.seed * 6.28f) * 1.4f * scale;
 		float x0 = pt.x() - panelW / 2f, y0 = pt.y() - panelH / 2f + bob;
 		int ix0 = Math.round(x0), iy0 = Math.round(y0), ix1 = Math.round(x0 + panelW), iy1 = Math.round(y0 + panelH);
 
@@ -272,81 +356,118 @@ public final class EchoesStyle implements LyricStyle {
 		vis *= pn.coverFade;
 		if (vis < 0.02f) return;
 
-		int acc = current ? f.accent() : Draw.mix(f.accent(), f.colorB(), 0.55f);
-		int hi = Draw.mix(acc, 0xFFFFFF, 0.55f);
+		int acc = current ? f.accent() : Draw.mix(f.accent(), f.colorB(), 0.5f);
+		float glow = current ? 0.7f + beat * 1.3f + f.pulse() * 0.4f : 0.25f;
+		GlassPanel.draw(g, ix0, iy0, ix1, iy1, f.colorA(), acc, vis * Math.min(1f, open + 0.3f), glow, pn.seed, f.time());
 
-		// projector beam from the floor up to the panel
-		float beamTop = iy1, beamBottom = beamTop + 0.9f * pt.pxPerBlock();
-		float beamHalf = Math.max(2f, panelW * 0.18f);
-		for (int i = 0; i < 6; i++) {
-			float u = i / 6f, w = beamHalf * (1f - u * 0.85f);
-			g.fillGradient(Math.round(pt.x() - w), Math.round(beamTop), Math.round(pt.x() + w), Math.round(beamBottom),
-					Draw.argb(acc, 0.05f * vis), Draw.argb(acc, 0f));
+		// a soft flash when it opens
+		if (age < 0.45f) {
+			float fl = 1f - age / 0.45f;
+			g.fill(ix0, iy0, ix1, iy1, Draw.argb(Draw.mix(acc, 0xFFFFFF, 0.6f), 0.22f * fl * fl * f.vis()));
 		}
-		Draw.circle(g, pt.x(), beamBottom, Math.max(1.5f, beamHalf * 0.25f), Draw.argb(hi, 0.35f * vis));
-
-		// glass body with a vertical gradient, scanlines and a moving sheen
-		g.fillGradient(ix0, iy0, ix1, iy1, Draw.argb(Draw.mix(acc, 0x020806, 0.82f), 0.62f * vis),
-				Draw.argb(0x020806, 0.38f * vis));
-		int scan = (int) (f.time() * 14) % 3;
-		for (int y = iy0 + scan; y < iy1; y += 3) g.fill(ix0, y, ix1, y + 1, Draw.argb(acc, 0.045f * vis));
-		float sheenU = ((f.time() * 0.35f + pn.seed) % 1.6f) / 1.6f;
-		int sx = Math.round(x0 + panelW * (sheenU * 1.4f - 0.2f));
-		g.enableScissor(ix0, iy0, ix1, iy1);
-		for (int i = 0; i < 6; i++) g.fill(sx + i * 2 - 6, iy0, sx + i * 2 - 4, iy1, Draw.argb(0xFFFFFF, 0.025f * vis * (6 - i)));
-		g.disableScissor();
-
-		// edges: bright top/bottom lines that grow from the centre + corner brackets
-		float grow = Draw.easeOutCubic(Math.clamp(age / 0.5f, 0f, 1f));
-		int cxi = Math.round(pt.x()), half = Math.round(panelW / 2f * grow);
-		g.fill(cxi - half, iy0, cxi + half, iy0 + 1, Draw.argb(hi, 0.85f * vis));
-		g.fill(cxi - half, iy1 - 1, cxi + half, iy1, Draw.argb(acc, 0.6f * vis));
-		int c = Math.max(3, Math.round(6 * scale));
-		bracket(g, ix0, iy0, c, 1, 1, vis);
-		bracket(g, ix1, iy0, c, -1, 1, vis);
-		bracket(g, ix0, iy1, c, 1, -1, vis);
-		bracket(g, ix1, iy1, c, -1, -1, vis);
-
-		// spawn flash
-		if (age < 0.5f) {
-			float fl = 1f - age / 0.5f;
-			g.fill(ix0 - 3, iy0 - 3, ix1 + 3, iy1 + 3, Draw.argb(hi, 0.18f * fl * fl * f.vis()));
-		}
-		if (open < 0.6f) return;
 
 		// tiny timestamp tag on the top-left edge
 		float tagScale = Math.max(0.35f, scale * 0.42f);
-		Draw.text(g, f.font(), NowPlayingTime.of(line.startMs()), ix0 + 3 * scale, iy0 + 2 * scale, tagScale,
-				Draw.argb(acc, 0.7f * vis), false);
+		Draw.text(g, f.font(), NowPlayingTime.of(line.startMs()), ix0 + 4 * scale, iy0 + 2 * scale, tagScale,
+				Draw.argb(Draw.mix(acc, 0xFFFFFF, 0.3f), 0.6f * vis), false);
 
-		float tw = f.font().width(text) * scale;
-		float tx = pt.x() - tw / 2f, ty = y0 + (panelH - lh) / 2f + scale * 1.5f;
-		if (current) {
-			boolean waiting = f.active() < 0 && line.startMs() - f.posMs() > 1800;
-			if (waiting) {
-				BreakDots.draw(f, pt.x(), ty, scale, Draw.Align.CENTER, vis);
-			} else {
-				// chromatic split that kicks in on each word and the odd glitch
-				float split = (f.pulse() * 0.9f + glitch * 1.5f) * scale;
-				if (split > 0.2f) {
-					Draw.text(g, f.font(), text, tx - split, ty, scale, Draw.argb(0xFF3B6B, 0.28f * vis), false);
-					Draw.text(g, f.font(), text, tx + split, ty, scale, Draw.argb(0x3BE8FF, 0.28f * vis), false);
-				}
-				float progress = f.active() == pn.index ? line.progress(f.posMs()) : 0f;
-				Draw.karaoke(g, f.font(), text, tx, ty, scale, progress, vis, acc, 0xE4FFF0, 0.55f, false,
-						0.8f + f.pulse() * 0.6f);
+		float s = scale * size;
+		float tw = f.font().width(text) * s;
+		float tx = pt.x() - tw / 2f, ty = y0 + (panelH - lh * size) / 2f + s * 1.5f;
+
+		if (!current) {
+			Draw.text(g, f.font(), text, tx, ty, s, Draw.argb(Draw.mix(0xEEF2FF, acc, 0.3f), 0.95f * vis), false);
+			return;
+		}
+		boolean waiting = f.active() < 0 && line.startMs() - f.posMs() > 1800;
+		if (waiting) {
+			BreakDots.draw(f, pt.x(), ty, s, Draw.Align.CENTER, vis);
+			return;
+		}
+
+		// words pop in one by one as they're sung: they rise, grow and light up
+		int cursor = 0;
+		for (int i = 0; i < words.size(); i++) {
+			Lyrics.Word w = words.get(i);
+			int at = text.indexOf(w.text(), cursor);
+			if (at < 0) at = cursor;
+			cursor = at + w.text().length();
+			float wx = tx + f.font().width(text.substring(0, at)) * s;
+			float ww = f.font().width(w.text()) * s;
+			float since = (progress - w.start()) * line.durationMs() / 1000f;
+			if (since < 0) {
+				// not sung yet: a faint ghost so you can read ahead
+				Draw.text(g, f.font(), w.text(), wx, ty, s, Draw.argb(0xEEF2FF, 0.16f * vis), false);
+				continue;
 			}
-		} else {
-			Draw.text(g, f.font(), text, tx, ty, scale, Draw.argb(Draw.mix(0xE4FFF0, acc, 0.35f), vis), false);
+			float t = Math.clamp(since / 0.22f, 0f, 1f);
+			float pop = 0.55f + 0.45f * Draw.easeOutBack(t);
+			float rise = (1f - Draw.easeOutCubic(t)) * 5f * s;
+			boolean singing = i == sungWord && progress < 1f;
+			int col = singing ? Draw.mix(acc, 0xFFFFFF, 0.45f) : acc;
+			float cx = wx + ww / 2f, cy = ty + lh * size / 2f;
+			Draw.glowText(g, f.font(), w.text(), cx - ww * pop / 2f, cy - lh * size * pop / 2f + rise, s * pop, col,
+					vis * Math.min(1f, t * 1.6f), singing ? 1f + beat : 0.45f);
 		}
 	}
 
-	private static void bracket(GuiGraphicsExtractor g, int x, int y, int len, int dx, int dy, float vis) {
-		int col = Draw.argb(0xFFFFFF, 0.85f * vis);
-		int xs = dx > 0 ? x : x - len, ys = dy > 0 ? y : y - 2;
-		g.fill(xs, ys, xs + len, ys + 2, col);
-		int vx = dx > 0 ? x : x - 2, vy = dy > 0 ? y : y - len;
-		g.fill(vx, vy, vx + 2, vy + len, col);
+	// ------------------------------------------------------------------ sparks
+
+	private void burst(Frame f, Panel pn, long now, int count) {
+		for (int i = 0; i < count; i++) addSpark(f, pn, now, true);
+	}
+
+	private void addSpark(Frame f, Panel pn, long now, boolean fromWord) {
+		if (sparks.size() >= MAX_SPARKS) sparks.removeFirst();
+		Vector3f right = f.proj().left().negate();
+		Vec3 base = pn.posNow(now);
+		float along = (rng.nextFloat() - 0.5f) * pn.wBlocks * 0.9f;
+		float upOff = (rng.nextFloat() - 0.3f) * pn.hBlocks * 0.6f;
+		Vec3 pos = base.add(right.x * along, upOff, right.z * along);
+		Vec3 vel = new Vec3((rng.nextFloat() - 0.5f) * 0.12f, 0.22f + rng.nextFloat() * 0.25f, (rng.nextFloat() - 0.5f) * 0.12f);
+		boolean note = fromWord ? rng.nextFloat() < 0.5f : rng.nextFloat() < 0.2f;
+		sparks.add(new Spark(pos, vel, 1.2f + rng.nextFloat() * 0.9f, note, rng.nextFloat() * 6.28f));
+	}
+
+	private void updateSparks(Frame f, Panel current, long now) {
+		float dt = Math.min(f.dt(), 0.1f);
+		// a gentle trickle while a line is being sung, on top of the bursts on each word
+		if (current != null && f.active() == current.index && f.vis() > 0.1f) {
+			sparkDebt += dt * 4f;
+			while (sparkDebt >= 1f) {
+				sparkDebt -= 1f;
+				addSpark(f, current, now, false);
+			}
+		} else {
+			sparkDebt = 0f;
+		}
+		for (Spark sp : sparks) {
+			sp.age += dt;
+			sp.pos = sp.pos.add(sp.vel.x * dt, sp.vel.y * dt, sp.vel.z * dt);
+		}
+		sparks.removeIf(sp -> sp.age >= sp.life);
+	}
+
+	private void drawSparks(Frame f) {
+		GuiGraphicsExtractor g = f.g();
+		for (Spark sp : sparks) {
+			Projector.Point pt = f.proj().project(sp.pos);
+			if (pt == null || pt.pxPerBlock() <= 0 || !f.proj().onScreen(pt, 20)) continue;
+			float u = sp.age / sp.life;
+			float a = f.vis() * Math.min(1f, sp.age / 0.15f) * (1f - u) * (1f - u);
+			if (a < 0.02f) continue;
+			float wob = (float) Math.sin(sp.age * 5f + sp.wobble) * 0.04f * pt.pxPerBlock();
+			float x = pt.x() + wob, y = pt.y();
+			int col = Draw.mix(f.accent(), f.colorB(), u);
+			if (sp.note) {
+				float s = Math.clamp(pt.pxPerBlock() * 0.1f / f.font().lineHeight, 0.3f, 1.4f);
+				Draw.text(g, f.font(), "♪", x - 2.5f * s, y - 4 * s, s, Draw.argb(col, 0.85f * a), false);
+			} else {
+				float r = Math.clamp(pt.pxPerBlock() * 0.012f, 0.6f, 2f);
+				Draw.circle(g, x, y, r * 2f, Draw.argb(col, 0.18f * a));
+				Draw.circle(g, x, y, r, Draw.argb(Draw.mix(col, 0xFFFFFF, 0.6f), 0.9f * a));
+			}
+		}
 	}
 
 	/** m:ss for the little timestamp tags. */
