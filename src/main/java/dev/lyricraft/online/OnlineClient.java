@@ -38,7 +38,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class OnlineClient {
 
 	/** What another Lyricraft player is listening to (all fields may be null if they don't share). */
-	public record Remote(UUID id, String song, String artist, String line, long durMs, long elapsedMs, long receivedNanos) {
+	/** @param echoes they show their lines as Echoes panels (so no need to repeat them above their head) */
+	public record Remote(UUID id, String song, String artist, String line, long durMs, long elapsedMs, long receivedNanos,
+	                     boolean echoes) {
 		/** Where in the current line they are right now. */
 		public long elapsedNow() {
 			return elapsedMs + (System.nanoTime() - receivedNanos) / 1_000_000;
@@ -127,7 +129,7 @@ public final class OnlineClient {
 		demo = true;
 		myId = id;
 		status = Status.ONLINE;
-		remotes.put(id, new Remote(id, song, artist, line, durMs, elapsedMs, System.nanoTime()));
+		remotes.put(id, new Remote(id, song, artist, line, durMs, elapsedMs, System.nanoTime(), false));
 	}
 
 	public boolean demoActive() {
@@ -389,7 +391,9 @@ public final class OnlineClient {
 				elapsed = pos - line.startMs();
 			}
 		}
-		String key = cfg.shareLyrics + "|" + (playing ? track.trackKey() : "") + "|" + (line == null ? "" : line.startMs() + line.text());
+		// on Echoes your lines are shown as panels in the world, so friends skip the one above your head
+		boolean echoes = cfg.style == Config.Style.ECHOES && cfg.shareEchoes && cfg.enabled;
+		String key = cfg.shareLyrics + "|" + echoes + "|" + (playing ? track.trackKey() : "") + "|" + (line == null ? "" : line.startMs() + line.text());
 		long now = System.currentTimeMillis();
 		if (!force && key.equals(lastStateKey)) return;
 		if (!force && now - lastStateSent < 300) return;
@@ -400,6 +404,7 @@ public final class OnlineClient {
 		o.addProperty("t", "state");
 		o.addProperty("sharing", cfg.shareLyrics);
 		if (cfg.shareLyrics && playing) {
+			if (echoes) o.addProperty("echoes", true);
 			o.addProperty("song", track.title());
 			o.addProperty("artist", track.artist());
 			if (line != null) {
@@ -483,14 +488,15 @@ public final class OnlineClient {
 		UUID id = UUID.fromString(m.get("id").getAsString());
 		JsonElement s = m.get("state");
 		if (s == null || s.isJsonNull()) {
-			remotes.put(id, new Remote(id, null, null, null, 0, 0, System.nanoTime()));
+			remotes.put(id, new Remote(id, null, null, null, 0, 0, System.nanoTime(), false));
 			return;
 		}
 		JsonObject o = s.getAsJsonObject();
 		long dur = o.has("dur") ? Math.clamp(o.get("dur").getAsLong(), 0, 60_000) : 0;
 		long elapsed = o.has("elapsed") ? Math.clamp(o.get("elapsed").getAsLong(), 0, 60_000) : 0;
 		if (remotes.size() > 500 && !remotes.containsKey(id)) return; // never grow without bound
-		remotes.put(id, new Remote(id, str(o, "song"), str(o, "artist"), str(o, "line"), dur, elapsed, System.nanoTime()));
+		boolean echoes = o.has("echoes") && o.get("echoes").isJsonPrimitive() && o.get("echoes").getAsBoolean();
+		remotes.put(id, new Remote(id, str(o, "song"), str(o, "artist"), str(o, "line"), dur, elapsed, System.nanoTime(), echoes));
 	}
 
 	/** Text from other players, cleaned again here (never trust the network). */
