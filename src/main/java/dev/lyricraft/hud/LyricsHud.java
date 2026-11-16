@@ -180,6 +180,14 @@ public final class LyricsHud implements HudElement {
 			}
 		}
 		lyricsOnScreen = drewLyrics;
+		// flat lyric styles: keep friends' Echoes panels off the lyrics
+		if (drewLyrics) {
+			float[] c = LyricsAnchor.center(cfg, gw, gh), sz = LyricsAnchor.size(cfg, gw);
+			float k = cfg.scale;
+			float hh = cfg.style == Config.Style.CLASSIC ? (2 * 9 * 0.95f * k + 8 * k + 9 * 1.45f * k) / 2f + 4 : sz[1];
+			float hw = Math.max(sz[0], gw * 0.3f) / 2f + 8;
+			HudSpace.reserve(c[0] - hw, c[1] - hh, c[0] + hw, c[1] + hh);
+		}
 		// other Lyricraft players: their Echoes panels in the world, and their line above their heads
 		if (!menuOpen && mc.level != null) {
 			projector.update(mc.gameRenderer.mainCamera(), gw, gh);
