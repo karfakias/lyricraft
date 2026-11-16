@@ -205,7 +205,7 @@ export class Hub {
 			// sharing off = just the badge; otherwise song (+ the current line, if one is being sung)
 			a.state = msg.sharing === false
 				? null
-				: clean({ song: msg.song, artist: msg.artist, line: msg.line, dur: msg.dur, elapsed: msg.elapsed });
+				: clean({ song: msg.song, artist: msg.artist, line: msg.line, dur: msg.dur, elapsed: msg.elapsed, echoes: msg.echoes });
 			ws.serializeAttachment(a);
 			this.broadcast(a, (id) => ({ t: "state", id, state: a.state }));
 		}
@@ -419,5 +419,6 @@ function clean(s) {
 	if (typeof s.line === "string" && cleanText(s.line, LIMITS.line)) out.line = cleanText(s.line, LIMITS.line);
 	if (Number.isFinite(s.dur)) out.dur = Math.max(0, Math.min(60_000, Math.round(s.dur)));
 	if (Number.isFinite(s.elapsed)) out.elapsed = Math.max(0, Math.min(60_000, Math.round(s.elapsed)));
+	if (s.echoes === true) out.echoes = true; // they're showing their lines as Echoes panels
 	return out;
 }
