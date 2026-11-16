@@ -98,6 +98,12 @@ check(snap2.players.some((p) => p.id === A), "snapshot includes yourself");
 b.send({ t: "state", sharing: true, song: "Song", artist: "Artist", line: "second line", dur: 2500, elapsed: 0 });
 const upd = await a.next((m) => m.t === "state" && m.id === B && m.state?.line === "second line");
 check(upd.state.dur === 2500, "A gets B's new line live");
+b.send({ t: "state", sharing: true, song: "Song", line: "on echoes", dur: 2000, elapsed: 0, echoes: true });
+const onEchoes = await a.next((m) => m.t === "state" && m.id === B && m.state?.line === "on echoes");
+check(onEchoes.state.echoes === true, "A learns that B shows their lines as Echoes panels");
+b.send({ t: "state", sharing: true, song: "Song", line: "not echoes", dur: 2000, elapsed: 0, echoes: "yes please" });
+const junk = await a.next((m) => m.t === "state" && m.id === B && m.state?.line === "not echoes");
+check(junk.state.echoes === undefined, "only a real true counts as being on Echoes");
 
 // B stops seeing A (e.g. A left B's server): A is told B is gone and gets no more updates
 b.send({ t: "watch", ids: [] });

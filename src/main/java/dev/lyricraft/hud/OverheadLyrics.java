@@ -42,9 +42,11 @@ public final class OverheadLyrics {
 			if (scale < 0.2f) continue;
 
 			float y = pt.y();
-			// current line (only while it's being sung)
+			// current line (only while it's being sung). Players on Echoes already show their lines as
+			// panels in the world, so it'd just be doubled up here; then only the song name shows.
+			boolean asPanels = self ? cfg.style == Config.Style.ECHOES : r.echoes() && cfg.showOthersEchoes;
 			long elapsed = r.elapsedNow();
-			if (r.line() != null && r.durMs() > 0 && elapsed < r.durMs() + 1500) {
+			if (!asPanels && r.line() != null && r.durMs() > 0 && elapsed < r.durMs() + 1500) {
 				String line = r.line();
 				float s = Draw.fitScale(font.width(line), scale, g.guiWidth() * 0.6f);
 				float w = font.width(line) * s;
