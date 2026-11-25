@@ -162,8 +162,12 @@ public final class LyricraftScreen extends Screen implements LyricraftUi {
 			add(styleChip(s, cx0 + (i % 2) * (half + 4), y + (i / 2) * 22, half));
 			i++;
 		}
+		y += ((i + 1) / 2) * 22 + 4;
+		toggle(cx0, y, cw, "Edit effects on popular songs", () -> cfg().editEffects, v -> cfg().editEffects = v,
+				"In Echoes, " + dev.lyricraft.hud.style.EditSongs.size() + " popular songs get TikTok-edit style effects: "
+						+ "a title card, flashes, shake and particles that hit on the chorus.");
 		info = "";
-		return y + ((i + 1) / 2) * 22;
+		return y + 22;
 	}
 
 	private Widgets.Chip styleChip(Config.Style s, int x, int y, int w) {

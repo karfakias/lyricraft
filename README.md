@@ -23,6 +23,7 @@ Switch with **K**.
 
 - **Classic** (the default): a scrolling lyric sheet above the hotbar. The current line fills in as it's sung.
 - **Echoes** (our favourite, give it a try): each new line appears where you're looking and stays there in the world. Walk around during a song and you leave a trail of lyrics behind you.
+  Popular songs (about 290 of them, from what people actually edit to on TikTok and Reels) get edit effects in Echoes: a title card, and flashes, shake, speed lines, letterbox bars and particles that hit on the chorus, styled to fit the song. You can switch that off in the Style tab. The list is in `src/main/resources/assets/lyricraft/edit_songs.txt` if you want to add songs.
 - **Sky Writing**: huge lyrics in the sky that drift towards wherever you're looking. In caves, buildings, the Nether and the End it falls back to Classic so you can still read them.
 - **Orbit**: the words circle around you and pop as they're sung.
 - **Pop**: the words appear one at a time.
@@ -49,7 +50,7 @@ Vinyl, Cassette, VHS, Synthwave, Visualizer, Lo-fi Rain, Starry Night, Oscillosc
 
 Players who use Lyricraft get a green ♫ after their name, in the tab list and above their head. If they're listening to something, the line they're hearing right now floats above their head, filling in as it's sung, with the song name under it. Yours shows to them too, and you can see your own in third person (F5).
 
-If a friend near you uses the Echoes style, you see their panels too, in the same spots in the world, with their name and their own colour. They only show for players close by (48 blocks) in the same world, at most 12 at a time, and they never cover your own panels or each other: they slide out of the way, or stay hidden if there's no room.
+If a friend near you uses the Echoes style, you see their panels too, in the same spots in the world, with their name and their own colour. They only show for players close by (48 blocks) in the same world, at most 8 at a time, and they never cover your own panels or each other: they slide out of the way, or stay hidden if there's no room.
 
 This works on any server without a server mod, through a small Lyricraft online service. It works with official and offline accounts. Your Minecraft login never leaves the game: official accounts are checked with the key Minecraft already uses to sign chat messages. Only your song, artist, current line and where your Echoes panels are placed are shared, and only with players who are on the same server as you (you both see each other in the tab list). Nobody can look you up from elsewhere, and nothing is stored. Other players never see your IP address.
 

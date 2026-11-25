@@ -79,6 +79,8 @@ public final class Config {
 	public boolean shareEchoes = true;
 	/** Show other players' Echoes panels where they placed them. */
 	public boolean showOthersEchoes = true;
+	/** TikTok-edit style effects in Echoes for popular songs. */
+	public boolean editEffects = true;
 	/** Address of the online service (your own Cloudflare Worker, see server/README.md). */
 	public String onlineServer = "https://lyricraft.lyricraft-server.workers.dev";
 	/** Keep the playback clock locked to Spotify by measuring and correcting drift. */
