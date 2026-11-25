@@ -127,6 +127,7 @@ public final class EditStyle implements LyricStyle {
 	private boolean introShown;
 	private float vis;
 	private int flashColor = 0xFFFFFF;
+	private boolean sceneOn = true;
 	/** Last time each keyword went off (so a chorus full of "love" doesn't spam), and weather that's still going. */
 	private final Map<WorldKeywords.Kind, Float> lastKind = new java.util.EnumMap<>(WorldKeywords.Kind.class);
 	private final Map<WorldKeywords.Kind, Float> weather = new java.util.EnumMap<>(WorldKeywords.Kind.class);
@@ -183,6 +184,7 @@ public final class EditStyle implements LyricStyle {
 			}
 			weather.clear();
 			bolts.clear();
+			SceneFx.clear();
 		}
 
 		// the song's name, stamped where you look, while waiting for the first line
@@ -282,6 +284,8 @@ public final class EditStyle implements LyricStyle {
 
 		EditCamera.tick(dt, f.cfg().editCamera && vis > 0.3f);
 		CinematicShots.tick(mc, dt, f.cfg().editAngles && vis > 0.3f);
+		sceneOn = f.cfg().editScenes;
+		SceneFx.tick(dt, sceneOn && vis > 0.3f);
 		if (f.active() < 0 && CinematicShots.active() && (next == null || next.startMs() - f.posMs() > 1500)) CinematicShots.end();
 
 		// weather from keywords (rain, snow, petals...) for a few seconds
@@ -448,6 +452,9 @@ public final class EditStyle implements LyricStyle {
 			Vec3 at = l.at(l.wordX[i], l.wordY[i]);
 			WorldKeywords.burst(mc, kind, at, l.normal, Math.max(1f, l.wordW[i] * l.scale), rng);
 			if (kind.ambient()) weather.put(kind, clock + 4.5f);
+			// and the sky changes with it, like a scene cut
+			SceneFx.Scene scene = SceneFx.sceneFor(kind);
+			if (scene != null && sceneOn) SceneFx.trigger(scene, 6f);
 			switch (kind) {
 				case STORM -> {
 					bolts.add(new float[]{(float) at.x, (float) at.y, (float) at.z, clock, rng.nextInt(1 << 20)});

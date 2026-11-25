@@ -85,6 +85,8 @@ public final class Config {
 	public boolean editCamera = true;
 	/** Edit style: cut to cinematic angles around you on the chorus (only while you stand still). */
 	public boolean editAngles = true;
+	/** Edit style: keywords change the sky (night, sunset, storm...), on your screen only. */
+	public boolean editScenes = true;
 	/** Address of the online service (your own Cloudflare Worker, see server/README.md). */
 	public String onlineServer = "https://lyricraft.lyricraft-server.workers.dev";
 	/** Keep the playback clock locked to Spotify by measuring and correcting drift. */

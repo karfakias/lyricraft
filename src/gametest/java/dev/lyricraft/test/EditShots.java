@@ -113,6 +113,18 @@ public final class EditShots implements FabricClientGameTest {
 			ctx.waitTicks(40);
 			ctx.takeScreenshot("edit-credits");
 
+			// scene changes in daylight: "night" turns the sky to a starry night (world stays lit), "wave" goes ocean blue
+			server.runCommand("time set 6000");
+			look(ctx, 200, -12);
+			for (String word : new String[]{"night", "wave"}) {
+				int li = 0;
+				while (!lyrics.lines.get(li).text().contains(word)) li++;
+				int line = li;
+				ctx.runOnClient(mc -> mod.showDemo(track(plain, lyrics.lines.get(line).startMs() - 60), lyrics));
+				ctx.waitTicks(70);
+				ctx.takeScreenshot("edit-scene-" + word);
+			}
+
 			ctx.runOnClient(mc -> {
 				mod.showDemo(null, null);
 				CoverArt.showDemo(null, null);
