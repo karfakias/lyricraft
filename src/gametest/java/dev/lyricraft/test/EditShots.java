@@ -108,6 +108,11 @@ public final class EditShots implements FabricClientGameTest {
 			ctx.waitTicks(50);
 			ctx.takeScreenshot("edit-sky-plain");
 
+			// the credits card after the last line
+			ctx.runOnClient(mc -> mod.showDemo(track(plain, lyrics.lines.getLast().endMs() + 2500), lyrics));
+			ctx.waitTicks(40);
+			ctx.takeScreenshot("edit-credits");
+
 			ctx.runOnClient(mc -> {
 				mod.showDemo(null, null);
 				CoverArt.showDemo(null, null);
