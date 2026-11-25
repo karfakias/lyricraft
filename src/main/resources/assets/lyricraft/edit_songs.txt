@@ -1,0 +1,320 @@
+# Songs that get TikTok-edit style effects in Echoes.
+# One per line: title | artist | style
+# Styles: HYPE (hard hits, shake, speed lines), DARK (red glitch, letterbox), SAD (slow, letterbox, rain),
+#         LOVE (pink glow, hearts), POP (colour pops, sparkles), RETRO (VHS, colour split)
+# Matching ignores case, accents, punctuation, "(feat. ...)", "(Slowed)" etc., and only needs the first artist.
+# Effects hit on the chorus (lines that repeat in the song), with the biggest one on the first chorus.
+
+# --- seen a lot in edits on TikTok / Reels (Nov 2026)
+expectations | Olivia Rodrigo & Chappell Roan | POP
+the cure | Olivia Rodrigo | SAD
+HONG KONG | The Weeknd | DARK
+stop the wedding | ashe | SAD
+Blood In Your Eyes | Tove Lo | DARK
+Beggin' | Måneskin | HYPE
+No Scrubs | TLC | RETRO
+Chasing Cars | Snow Patrol | SAD
+As It Was | Harry Styles | POP
+Earrings | Malcolm Todd | LOVE
+Lover, You Should've Come Over | Jeff Buckley | SAD
+Last Christmas | Wham! | RETRO
+Girls Just Want to Have Fun | Cyndi Lauper | RETRO
+Rockabye | Clean Bandit | POP
+I'M A BLACKHOLE (STAR) | Odetari | HYPE
+Take Me in Your Arms | Lil Suzy | RETRO
+Si No Estás | Iñigo Quintero | SAD
+
+# --- Minecraft edit classics with lyrics
+Revenge | CaptainSparklez | HYPE
+Fallen Kingdom | CaptainSparklez | DARK
+Take Back the Night | CaptainSparklez | DARK
+Find the Pieces | CaptainSparklez | DARK
+Dragonhearted | CaptainSparklez | HYPE
+
+# --- rap / hype
+Not Like Us | Kendrick Lamar | HYPE
+HUMBLE. | Kendrick Lamar | HYPE
+squabble up | Kendrick Lamar | HYPE
+tv off | Kendrick Lamar | HYPE
+Money Trees | Kendrick Lamar | DARK
+Swimming Pools (Drank) | Kendrick Lamar | DARK
+luther | Kendrick Lamar & SZA | LOVE
+SICKO MODE | Travis Scott | HYPE
+FE!N | Travis Scott | HYPE
+goosebumps | Travis Scott | DARK
+CARNIVAL | ¥$ | HYPE
+Stronger | Kanye West | HYPE
+POWER | Kanye West | HYPE
+Runaway | Kanye West | SAD
+Mockingbird | Eminem | SAD
+Lose Yourself | Eminem | HYPE
+Without Me | Eminem | HYPE
+Godzilla | Eminem | HYPE
+Rap God | Eminem | HYPE
+MONTERO (Call Me By Your Name) | Lil Nas X | DARK
+INDUSTRY BABY | Lil Nas X | HYPE
+Old Town Road | Lil Nas X | POP
+Rich Flex | Drake | HYPE
+God's Plan | Drake | POP
+NOKIA | Drake | HYPE
+First Person Shooter | Drake | HYPE
+One Dance | Drake | POP
+Passionfruit | Drake | LOVE
+Anxiety | Doechii | HYPE
+DENIAL IS A RIVER | Doechii | HYPE
+Lovin On Me | Jack Harlow | POP
+Gangsta's Paradise | Coolio | DARK
+In Da Club | 50 Cent | HYPE
+No Role Modelz | J. Cole | HYPE
+Mask Off | Future | DARK
+Mo Bamba | Sheck Wes | HYPE
+XO Tour Llif3 | Lil Uzi Vert | DARK
+Just Wanna Rock | Lil Uzi Vert | HYPE
+Lucid Dreams | Juice WRLD | SAD
+All Girls Are The Same | Juice WRLD | SAD
+Robbery | Juice WRLD | SAD
+Save That Shit | Lil Peep | SAD
+Star Shopping | Lil Peep | SAD
+Jocelyn Flores | XXXTENTACION | SAD
+SAD! | XXXTENTACION | SAD
+Moonlight | XXXTENTACION | SAD
+Changes | XXXTENTACION | SAD
+Look At Me! | XXXTENTACION | HYPE
+rockstar | Post Malone | DARK
+Circles | Post Malone | SAD
+Sunflower - Spider-Man: Into the Spider-Verse | Post Malone | POP
+I Had Some Help | Post Malone | POP
+Timeless | The Weeknd | HYPE
+Big Guy | Ice Spice | POP
+See You Again | Tyler, The Creator | LOVE
+EARFQUAKE | Tyler, The Creator | LOVE
+Self Control | Frank Ocean | SAD
+Pink + White | Frank Ocean | LOVE
+Ivy | Frank Ocean | SAD
+Nights | Frank Ocean | SAD
+Can't Hold Us | Macklemore & Ryan Lewis | HYPE
+Paint The Town Red | Doja Cat | DARK
+Say So | Doja Cat | POP
+Woman | Doja Cat | POP
+Kiss Me More | Doja Cat | POP
+
+# --- The Weeknd
+Blinding Lights | The Weeknd | RETRO
+Save Your Tears | The Weeknd | RETRO
+Out of Time | The Weeknd | RETRO
+The Hills | The Weeknd | DARK
+Starboy | The Weeknd | DARK
+Often | The Weeknd | DARK
+After Hours | The Weeknd | DARK
+Is There Someone Else? | The Weeknd | SAD
+Die For You | The Weeknd | SAD
+Call Out My Name | The Weeknd | SAD
+One Of The Girls | The Weeknd | DARK
+
+# --- pop
+Espresso | Sabrina Carpenter | POP
+Please Please Please | Sabrina Carpenter | POP
+Taste | Sabrina Carpenter | POP
+Manchild | Sabrina Carpenter | POP
+Juno | Sabrina Carpenter | LOVE
+Bed Chem | Sabrina Carpenter | LOVE
+Feather | Sabrina Carpenter | POP
+Good Luck, Babe! | Chappell Roan | POP
+HOT TO GO! | Chappell Roan | POP
+Pink Pony Club | Chappell Roan | POP
+Casual | Chappell Roan | SAD
+Femininomenon | Chappell Roan | POP
+The Giver | Chappell Roan | POP
+drivers license | Olivia Rodrigo | SAD
+traitor | Olivia Rodrigo | SAD
+good 4 u | Olivia Rodrigo | HYPE
+vampire | Olivia Rodrigo | DARK
+get him back! | Olivia Rodrigo | POP
+APT. | ROSÉ | POP
+Die With A Smile | Lady Gaga | LOVE
+Abracadabra | Lady Gaga | DARK
+Bloody Mary | Lady Gaga | DARK
+Poker Face | Lady Gaga | RETRO
+Bad Romance | Lady Gaga | DARK
+24K Magic | Bruno Mars | POP
+Locked out of Heaven | Bruno Mars | POP
+Talking to the Moon | Bruno Mars | SAD
+When I Was Your Man | Bruno Mars | SAD
+Beautiful Things | Benson Boone | SAD
+Slow It Down | Benson Boone | POP
+Mystical Magical | Benson Boone | POP
+Ordinary | Alex Warren | LOVE
+back to friends | sombr | SAD
+undressed | sombr | SAD
+12 to 12 | sombr | LOVE
+That's So True | Gracie Abrams | POP
+I Love You, I'm Sorry | Gracie Abrams | SAD
+Messy | Lola Young | SAD
+Sports car | Tate McRae | DARK
+greedy | Tate McRae | POP
+Just Keep Watching | Tate McRae | HYPE
+Saturn | SZA | SAD
+Kill Bill | SZA | DARK
+Snooze | SZA | LOVE
+Good Days | SZA | SAD
+Cruel Summer | Taylor Swift | POP
+Anti-Hero | Taylor Swift | POP
+The Fate of Ophelia | Taylor Swift | POP
+Love Story | Taylor Swift | LOVE
+Blank Space | Taylor Swift | POP
+august | Taylor Swift | LOVE
+Fortnight | Taylor Swift | SAD
+Watermelon Sugar | Harry Styles | POP
+Sign of the Times | Harry Styles | SAD
+Shape of You | Ed Sheeran | POP
+Perfect | Ed Sheeran | LOVE
+STAY | The Kid LAROI | POP
+Peaches | Justin Bieber | LOVE
+Levitating | Dua Lipa | POP
+Houdini | Dua Lipa | POP
+Dance The Night | Dua Lipa | POP
+Flowers | Miley Cyrus | POP
+Lose Control | Teddy Swims | SAD
+Stargazing | Myles Smith | LOVE
+A Bar Song (Tipsy) | Shaboozey | POP
+golden hour | JVKE | LOVE
+Daylight | David Kushner | DARK
+Until I Found You | Stephen Sanchez | LOVE
+Dandelions | Ruth B. | LOVE
+Riptide | Vance Joy | POP
+Unholy | Sam Smith | DARK
+Toxic | Britney Spears | RETRO
+Gimme More | Britney Spears | DARK
+Murder On The Dancefloor | Sophie Ellis-Bextor | RETRO
+Titanium | David Guetta | POP
+Wake Me Up | Avicii | POP
+Heather | Conan Gray | SAD
+Maniac | Conan Gray | POP
+Pretty Little Baby | Connie Francis | RETRO
+
+# --- Billie Eilish
+bad guy | Billie Eilish | DARK
+you should see me in a crown | Billie Eilish | DARK
+bury a friend | Billie Eilish | DARK
+lovely | Billie Eilish | SAD
+BIRDS OF A FEATHER | Billie Eilish | LOVE
+WILDFLOWER | Billie Eilish | SAD
+LUNCH | Billie Eilish | POP
+CHIHIRO | Billie Eilish | DARK
+What Was I Made For? | Billie Eilish | SAD
+
+# --- indie / sad edits
+Sweater Weather | The Neighbourhood | SAD
+Daddy Issues | The Neighbourhood | SAD
+Softcore | The Neighbourhood | DARK
+Another Love | Tom Odell | SAD
+Heathens | Twenty One Pilots | DARK
+Stressed Out | Twenty One Pilots | SAD
+Do I Wanna Know? | Arctic Monkeys | DARK
+I Wanna Be Yours | Arctic Monkeys | LOVE
+505 | Arctic Monkeys | SAD
+R U Mine? | Arctic Monkeys | HYPE
+Why'd You Only Call Me When You're High? | Arctic Monkeys | DARK
+Fluorescent Adolescent | Arctic Monkeys | POP
+Little Dark Age | MGMT | DARK
+Kids | MGMT | RETRO
+Electric Feel | MGMT | RETRO
+Fix You | Coldplay | SAD
+Viva La Vida | Coldplay | POP
+Yellow | Coldplay | LOVE
+The Scientist | Coldplay | SAD
+Somebody That I Used To Know | Gotye | SAD
+Let Her Go | Passenger | SAD
+Someone You Loved | Lewis Capaldi | SAD
+Before You Go | Lewis Capaldi | SAD
+Heat Waves | Glass Animals | SAD
+End of Beginning | Djo | SAD
+Line Without a Hook | Ricky Montgomery | SAD
+Mr Loverman | Ricky Montgomery | SAD
+Washing Machine Heart | Mitski | SAD
+My Love Mine All Mine | Mitski | LOVE
+Apocalypse | Cigarettes After Sex | LOVE
+K. | Cigarettes After Sex | LOVE
+Sunsetz | Cigarettes After Sex | LOVE
+Summertime Sadness | Lana Del Rey | SAD
+Young And Beautiful | Lana Del Rey | SAD
+Video Games | Lana Del Rey | SAD
+West Coast | Lana Del Rey | DARK
+Born To Die | Lana Del Rey | DARK
+Glimpse of Us | Joji | SAD
+SLOW DANCING IN THE DARK | Joji | SAD
+Die For You | Joji | SAD
+Take Me to Church | Hozier | DARK
+Too Sweet | Hozier | LOVE
+Work Song | Hozier | LOVE
+Mount Everest | Labrinth | DARK
+Jealous | Labrinth | SAD
+Where Is My Mind? | Pixies | DARK
+Creep | Radiohead | SAD
+No Surprises | Radiohead | SAD
+
+# --- rock / anthems
+Mr. Brightside | The Killers | HYPE
+Believer | Imagine Dragons | HYPE
+Enemy | Imagine Dragons | HYPE
+Thunder | Imagine Dragons | POP
+Bones | Imagine Dragons | HYPE
+Demons | Imagine Dragons | DARK
+Radioactive | Imagine Dragons | HYPE
+Centuries | Fall Out Boy | HYPE
+Seven Nation Army | The White Stripes | HYPE
+Bring Me To Life | Evanescence | DARK
+In the End | Linkin Park | DARK
+Numb | Linkin Park | DARK
+The Emptiness Machine | Linkin Park | HYPE
+Smells Like Teen Spirit | Nirvana | HYPE
+Everlong | Foo Fighters | HYPE
+Counting Stars | OneRepublic | POP
+I Ain't Worried | OneRepublic | POP
+
+# --- retro classics people edit to
+Everybody Wants To Rule The World | Tears For Fears | RETRO
+Running Up That Hill (A Deal With God) | Kate Bush | RETRO
+Take On Me | a-ha | RETRO
+Sweet Dreams (Are Made of This) | Eurythmics | RETRO
+Never Gonna Give You Up | Rick Astley | RETRO
+Bohemian Rhapsody | Queen | RETRO
+Don't Stop Me Now | Queen | POP
+Another One Bites The Dust | Queen | HYPE
+Stayin' Alive | Bee Gees | RETRO
+September | Earth, Wind & Fire | RETRO
+Dancing Queen | ABBA | RETRO
+Gimme! Gimme! Gimme! (A Man After Midnight) | ABBA | RETRO
+Tainted Love | Soft Cell | RETRO
+Mr. Blue Sky | Electric Light Orchestra | RETRO
+Dreams | Fleetwood Mac | RETRO
+The Chain | Fleetwood Mac | DARK
+Here Comes The Sun | The Beatles | RETRO
+Wonderwall | Oasis | RETRO
+Thriller | Michael Jackson | DARK
+Billie Jean | Michael Jackson | RETRO
+Smooth Criminal | Michael Jackson | HYPE
+Beat It | Michael Jackson | HYPE
+Rasputin | Boney M. | RETRO
+Blue (Da Ba Dee) | Eiffel 65 | RETRO
+Teenage Dirtbag | Wheatus | RETRO
+
+# --- K-pop / Latin
+Golden | HUNTR/X | POP
+Soda Pop | Saja Boys | POP
+Your Idol | Saja Boys | DARK
+Cupid - Twin Ver. | FIFTY FIFTY | LOVE
+Hype Boy | NewJeans | POP
+Super Shy | NewJeans | POP
+Seven | Jung Kook | POP
+Dynamite | BTS | POP
+Pink Venom | BLACKPINK | HYPE
+How You Like That | BLACKPINK | HYPE
+Gata Only | FloyyMenor | HYPE
+DÁKITI | Bad Bunny | DARK
+Tití Me Preguntó | Bad Bunny | POP
+DtMF | Bad Bunny | SAD
+BAILE INoLVIDABLE | Bad Bunny | LOVE
+MONACO | Bad Bunny | HYPE
+Despacito | Luis Fonsi | POP
+La Bachata | Manuel Turizo | LOVE
