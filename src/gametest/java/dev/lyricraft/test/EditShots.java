@@ -66,12 +66,20 @@ public final class EditShots implements FabricClientGameTest {
 			ctx.runOnClient(mc -> mod.showDemo(track(hype, 3000), lyrics));
 			ctx.waitTicks(45);
 			ctx.takeScreenshot("edit-wall-intro");
-			for (int k = 0; k < 5; k++) {
+			for (int k = 0; k < 3; k++) {
 				int kk = k;
 				ctx.runOnClient(mc -> mod.showDemo(track(hype, lyrics.lines.get(kk).startMs() - 100), lyrics));
 				ctx.waitTicks(4);
 			}
+			// keywords: "star" and "flame" in the same line
+			int starLine = 0;
+			while (!lyrics.lines.get(starLine).text().contains("star")) starLine++;
+			int sl = starLine;
+			ctx.runOnClient(mc -> mod.showDemo(track(hype, lyrics.lines.get(sl).startMs() - 60), lyrics));
+			ctx.waitTicks(48);
+			ctx.takeScreenshot("edit-keywords");
 			look(ctx, 180, -4);
+			ctx.waitTicks(30); // stand still a moment, so the chorus can cut to a cinematic angle
 			// the first chorus line (it comes back at the end of the song): the drop
 			int drop = 0;
 			while (!lyrics.lines.get(drop).text().startsWith("Hold on")) drop++;
@@ -81,6 +89,8 @@ public final class EditShots implements FabricClientGameTest {
 			ctx.takeScreenshot("edit-wall-drop");
 			ctx.waitTicks(40);
 			ctx.takeScreenshot("edit-wall-chorus");
+			ctx.waitTicks(30);
+			ctx.takeScreenshot("edit-angle-later");
 
 			// 2) a love song, looking at the ground
 			String[] love = {"Die With A Smile", "Lady Gaga, Bruno Mars"};
