@@ -9,20 +9,40 @@ import dev.lyricraft.hud.Draw;
 public final class EditCamera {
 	private EditCamera() {}
 
-	private static float punch, shake;
+	private static float punch, shake, drift, driftNow, dive, diveNow, sway, swayNow;
 	private static long lastActive;
 	private static float t;
 
 	/** Called each frame while the Edit style is drawing. */
 	static void tick(float dt, boolean enabled) {
 		if (!enabled) {
-			punch = shake = 0f;
+			punch = shake = drift = driftNow = dive = diveNow = sway = swayNow = 0f;
 			return;
 		}
 		lastActive = System.nanoTime();
 		t += dt;
 		punch = Draw.approach(punch, 0f, dt * 3.4f);
+		// follow the push-in smoothly, but snap back fast when a new line resets it
+		driftNow = drift < driftNow ? Draw.approach(driftNow, drift, dt * 0.6f) : Draw.approach(driftNow, drift, dt * 0.08f);
 		shake = Draw.approach(shake, 0f, dt * 2.8f);
+		// the dive builds smoothly but lets go at once when the drop hits
+		diveNow = dive > diveNow ? Draw.approach(diveNow, dive, dt * 3f) : dive;
+		swayNow = Draw.approach(swayNow, sway, dt * 0.8f);
+	}
+
+	/** 0..1 as the drop gets close: the camera dives into the text. */
+	static void dive(float amount) {
+		dive = amount;
+	}
+
+	/** 1 while a chorus line is on: a slow handheld-like roll. */
+	static void sway(float amount) {
+		sway = amount;
+	}
+
+	/** Slow push-in while a line is sung (0..about 0.05 of the field of view). */
+	static void drift(float amount) {
+		drift = amount;
 	}
 
 	static void hit(float punchAmount, float shakeAmount) {
@@ -36,16 +56,18 @@ public final class EditCamera {
 
 	/** Multiplier for the field of view: below 1 zooms in. */
 	public static float fovFactor() {
-		if (!live() || punch <= 0.001f) return 1f;
+		if (!live()) return 1f;
 		float p = Draw.easeOutCubic(punch);
-		return 1f - 0.11f * p;
+		float d = diveNow * diveNow;
+		return (1f - 0.11f * p) * (1f - driftNow) * (1f - 0.45f * d);
 	}
 
 	/** Extra camera roll in degrees. */
 	public static float roll() {
-		if (!live() || shake <= 0.001f) return 0f;
+		if (!live()) return 0f;
 		float s = shake * shake;
-		return s * 2.2f * (float) (Math.sin(t * 37.0) + 0.5 * Math.sin(t * 61.0));
+		return s * 2.2f * (float) (Math.sin(t * 37.0) + 0.5 * Math.sin(t * 61.0))
+				+ swayNow * 1.4f * (float) Math.sin(t * 0.9) + diveNow * diveNow * 4f;
 	}
 
 	/** Extra pitch shake in degrees. */
