@@ -71,6 +71,7 @@ public final class EditStyle implements LyricStyle {
 		float ring = -1;              // when the shockwave started
 		int surfaceColor = -1;        // map colour of the block it's on, or -1
 		int key = -1;                 // the word that gets the coloured bar (the longest word on a chorus line)
+		WorldKeywords.Kind[] kinds;   // words that do something to the world (fire, rain, storm...)
 		Line parent;                  // a chorus word that flew to where you were looking: its line
 		boolean crumbled;             // already burst into dust
 
@@ -122,6 +123,15 @@ public final class EditStyle implements LyricStyle {
 	private String songKey = "";
 	private boolean introShown;
 	private float vis;
+	private int flashColor = 0xFFFFFF;
+	/** Last time each keyword went off (so a chorus full of "love" doesn't spam), and weather that's still going. */
+	private final Map<WorldKeywords.Kind, Float> lastKind = new java.util.EnumMap<>(WorldKeywords.Kind.class);
+	private final Map<WorldKeywords.Kind, Float> weather = new java.util.EnumMap<>(WorldKeywords.Kind.class);
+	/** Lightning bolts: {x, y, z, start time, seed}. */
+	private final List<float[]> bolts = new ArrayList<>();
+	/** The "look" slide at the start of a song. */
+	private float slideAt = -99f;
+	private String slideTitle, slideArtist;
 
 	public EditStyle() {
 		instance = this;
@@ -163,6 +173,13 @@ public final class EditStyle implements LyricStyle {
 		if (!key.equals(songKey)) {
 			songKey = key;
 			songStyle = f.cfg().editEffects && track != null ? EditSongs.find(track.title(), track.artist()) : null;
+			if (track != null) {
+				slideAt = clock;
+				slideTitle = track.title();
+				slideArtist = track.artist();
+			}
+			weather.clear();
+			bolts.clear();
 		}
 
 		// the song's name, stamped where you look, while waiting for the first line
@@ -193,6 +210,8 @@ public final class EditStyle implements LyricStyle {
 				}
 				lines.add(l);
 				float boost = songStyle != null ? 1f : 0.7f;
+				if (ch) CinematicShots.cut(l.drop);
+				else CinematicShots.end();
 				if (l.drop) {
 					l.ring = clock;
 					EditCamera.hit(1f * boost, 1f * boost);
@@ -219,7 +238,7 @@ public final class EditStyle implements LyricStyle {
 			for (int i = 0; i < Math.min(ws.size(), l.words.length); i++) {
 				if (l.landedAt[i] != -1f || progress < ws.get(i).start()) continue;
 				// on the chorus, if you've looked somewhere else, the word lands where you're looking now
-				if (l.chorus && i > 0 && lookedAway(f.proj(), l)) {
+				if (l.chorus && i > 0 && lookedAway(mc, l)) {
 					Line w = place(f, -2, l.words[i], true, false);
 					if (w != null) {
 						w.parent = l;
@@ -259,17 +278,29 @@ public final class EditStyle implements LyricStyle {
 		EditCamera.drift(cur == null ? 0f : cur.progress(f.posMs()) * (songStyle == EditSongs.Style.SAD ? 0.05f : 0.035f));
 
 		EditCamera.tick(dt, f.cfg().editCamera && vis > 0.3f);
+		CinematicShots.tick(mc, dt, f.cfg().editAngles && vis > 0.3f);
+		if (f.active() < 0 && CinematicShots.active() && (next == null || next.startMs() - f.posMs() > 1500)) CinematicShots.end();
+
+		// weather from keywords (rain, snow, petals...) for a few seconds
+		weather.entrySet().removeIf(w -> w.getValue() < clock);
+		for (var w : weather.keySet()) WorldKeywords.ambient(mc, w, dt, rng);
+		bolts.removeIf(b -> clock - b[3] > 0.6f);
+
 		flash = Draw.approach(flash, 0f, dt * 3.5f);
-		if (flash > 0.01f) f.g().fill(0, 0, f.width(), f.height(), Draw.argb(0xFFFFFF, 0.28f * flash * flash * vis));
+		if (flash < 0.02f) flashColor = 0xFFFFFF;
+		if (flash > 0.01f) f.g().fill(0, 0, f.width(), f.height(), Draw.argb(flashColor, 0.28f * flash * flash * vis));
+		drawSlide(f);
 	}
 
 	/** Raycast from the camera and stamp the line on what it hits (or in the air). */
 	private Line place(Frame f, int index, String text, boolean ch, boolean drop) {
 		Minecraft mc = Minecraft.getInstance();
-		Projector p = f.proj();
-		Vec3 cam = p.cameraPos();
-		Vector3f fw = p.forward();
-		Vector3f camRight = p.left().negate();
+		// from your own eyes, not the camera (which may be off on a cinematic angle)
+		Vec3 cam = mc.player.getEyePosition();
+		Vec3 look = mc.player.getViewVector(1f);
+		Vector3f fw = new Vector3f((float) look.x, (float) look.y, (float) look.z).normalize();
+		double yr = Math.toRadians(mc.player.getYRot());
+		Vector3f camRight = new Vector3f((float) -Math.cos(yr), 0f, (float) -Math.sin(yr));
 		Vector3f camUp = new Vector3f(camRight).cross(fw).normalize();
 		if (camUp.y < 0) camUp.negate();
 
@@ -343,6 +374,8 @@ public final class EditStyle implements LyricStyle {
 		float maxW = (float) Math.max(2.5, dist * (surface ? 1.05 : 0.7));
 		scale = Math.min(scale, maxW / width);
 		Line line = new Line(index, text, anchor, right, up, normal, surface, block, scale, words, wx, wy, ww, width, height, ch, drop, clock);
+		line.kinds = new WorldKeywords.Kind[words.length];
+		for (int i = 0; i < words.length; i++) line.kinds[i] = WorldKeywords.find(words[i]);
 		if (ch && index >= 0 && words.length > 1) {
 			int best = 0;
 			for (int i = 1; i < words.length; i++) if (words[i].length() > words[best].length()) best = i;
@@ -387,14 +420,40 @@ public final class EditStyle implements LyricStyle {
 					extra == ParticleTypes.NOTE ? rng.nextDouble() : l.normal.x * 0.05, up + l.normal.y * 0.05, l.normal.z * 0.05);
 		}
 		if (l.chorus) EditCamera.hit(songStyle != null ? 0.28f : 0.18f, songStyle == EditSongs.Style.SAD ? 0f : 0.22f);
+
+		// keywords change the world
+		WorldKeywords.Kind kind = l.kinds == null ? null : l.kinds[i];
+		if (kind != null && clock - lastKind.getOrDefault(kind, -99f) > 1.2f) {
+			lastKind.put(kind, clock);
+			Vec3 at = l.at(l.wordX[i], l.wordY[i]);
+			WorldKeywords.burst(mc, kind, at, l.normal, Math.max(1f, l.wordW[i] * l.scale), rng);
+			if (kind.ambient()) weather.put(kind, clock + 4.5f);
+			switch (kind) {
+				case STORM -> {
+					bolts.add(new float[]{(float) at.x, (float) at.y, (float) at.z, clock, rng.nextInt(1 << 20)});
+					flash = 1f;
+					flashColor = 0xDDEEFF;
+					EditCamera.hit(0.8f, 0.9f);
+				}
+				case BOOM -> EditCamera.hit(0.7f, 1f);
+				case SUN, STAR -> {
+					flash = Math.max(flash, 0.5f);
+					flashColor = kind.color;
+				}
+				case HELL, BLOOD -> {
+					flash = Math.max(flash, 0.45f);
+					flashColor = kind.color;
+				}
+				default -> { }
+			}
+		}
 	}
 
 	/** Has the camera turned well away from this line (about 20 degrees)? */
-	private static boolean lookedAway(Projector p, Line l) {
-		Vec3 cam = p.cameraPos();
-		Vec3 to = l.anchor.subtract(cam).normalize();
-		Vector3f fw = p.forward();
-		return to.x * fw.x + to.y * fw.y + to.z * fw.z < 0.94;
+	private static boolean lookedAway(Minecraft mc, Line l) {
+		Vec3 to = l.anchor.subtract(mc.player.getEyePosition()).normalize();
+		Vec3 fw = mc.player.getViewVector(1f);
+		return to.dot(fw) < 0.94;
 	}
 
 	/** The line breaks up into dust in the text's colour. */
@@ -432,6 +491,56 @@ public final class EditStyle implements LyricStyle {
 		};
 	}
 
+	/** What the slide calls the song's look. */
+	private String lookName() {
+		if (songStyle == null) return "CINEMATIC";
+		return switch (songStyle) {
+			case HYPE -> "HYPE EDIT";
+			case DARK -> "VILLAIN ARC";
+			case SAD -> "SAD HOURS";
+			case LOVE -> "LOVE STORY";
+			case POP -> "MAIN CHARACTER";
+			case RETRO -> "VHS TAPE";
+		};
+	}
+
+	/** The look slide: slides in at the start of a song with letterbox bars, then slides away. */
+	private void drawSlide(Frame f) {
+		float t = clock - slideAt;
+		if (t < 0f || t > 3.8f || slideTitle == null || vis < 0.05f) return;
+		var g = f.g();
+		var font = f.font();
+		int w = f.width(), h = f.height();
+		float in = Draw.easeOutCubic(Math.clamp(t / 0.5f, 0f, 1f));
+		float out = Math.clamp((t - 3.1f) / 0.7f, 0f, 1f);
+		out = out * out;
+		float a = vis * (1f - out);
+		int col = songStyle != null ? styleColor() : accent;
+
+		// letterbox bars slide in from the top and bottom
+		int bar = Math.round(h * 0.075f * in * (1f - out));
+		g.fill(0, 0, w, bar, Draw.argb(0x000000, 0.9f * vis));
+		g.fill(0, h - bar, w, h, Draw.argb(0x000000, 0.9f * vis));
+
+		// the slide: comes in from the left, leaves to the right
+		float x = -w * 0.6f * (1f - in) + w * 0.7f * out + w * 0.07f;
+		float y = h * 0.6f;
+		String look = lookName();
+		float big = 3f;
+		float lw = font.width(look) * big;
+		// a dark band behind it with a coloured edge
+		g.fillGradient(Math.round(x - 10), Math.round(y - 14), Math.round(x + lw + 40), Math.round(y + 9 * big + 26),
+				Draw.argb(0x000000, 0.55f * a), Draw.argb(0x000000, 0.25f * a));
+		g.fill(Math.round(x - 10), Math.round(y - 14), Math.round(x - 7), Math.round(y + 9 * big + 26), Draw.argb(col, a));
+		// a line that wipes across under the title
+		float wipe = Draw.easeOutCubic(Math.clamp((t - 0.25f) / 0.5f, 0f, 1f));
+		g.fill(Math.round(x), Math.round(y + 9 * big + 3), Math.round(x + (lw + 24) * wipe), Math.round(y + 9 * big + 4), Draw.argb(col, a));
+		Draw.text(g, font, "a minecraft edit", x, y - 10, 0.8f, Draw.argb(0xE8E8F0, 0.75f * a), false);
+		Draw.glowText(g, font, look, x, y, big, col, a, 0.6f);
+		String song = "♪ " + slideTitle + (slideArtist == null || slideArtist.isBlank() ? "" : "  —  " + slideArtist);
+		Draw.text(g, font, Draw.ellipsize(font, song, Math.round(w * 0.6f)), x, y + 9 * big + 8, 1f, Draw.argb(0xFFFFFF, 0.9f * a), true);
+	}
+
 	// ------------------------------------------------------------------ in the world (render pass)
 
 	/** Called from the level render event: submits the stamped lines as 3D text. */
@@ -448,6 +557,7 @@ public final class EditStyle implements LyricStyle {
 		PoseStack pose = ctx.poseStack();
 		var out = ctx.submitNodeCollector();
 		Font font = mc.font;
+		for (float[] b : bolts) bolt(out, pose, cam, b, clock, vis);
 		for (Line l : lines) {
 			int glowCol = lineColor(l);
 			float fade = l.diedAt < 0 ? 1f : 1f - Math.clamp((clock - l.diedAt) / FADE_S, 0f, 1f);
@@ -487,7 +597,8 @@ public final class EditStyle implements LyricStyle {
 				// glow behind the word that just hit
 				if (newest || age < 0.4f) {
 					float g = (newest ? 0.35f : 0f) + 0.5f * Math.max(0f, 1f - age / 0.4f);
-					glow(out, pose, cx, cy, l.wordW[i] / 2f + 3, 5.5f, glowCol, g * a);
+					int gc = l.kinds != null && l.kinds[i] != null ? l.kinds[i].color : glowCol;
+					glow(out, pose, cx, cy, l.wordW[i] / 2f + 3, 5.5f, gc, (l.kinds != null && l.kinds[i] != null ? g + 0.3f : g) * a);
 				}
 				// chorus: echo copies of the word, a bit bigger and fainter, pulsing (the classic repeat-text look)
 				if (l.chorus && current && e.text.equals(l.words[i])) {
@@ -502,7 +613,8 @@ public final class EditStyle implements LyricStyle {
 					}
 				}
 				boolean key = i == l.key && current;
-				int base = e.tint >= 0 ? e.tint : key ? 0xFFFFFF
+				WorldKeywords.Kind kw = l.kinds == null ? null : l.kinds[i];
+				int base = e.tint >= 0 ? e.tint : kw != null ? Draw.mix(kw.color, 0xFFFFFF, 0.12f) : key ? 0xFFFFFF
 						: newest ? Draw.mix(0xFFFFFF, glowCol, 0.35f) : current ? 0xFFFFFF : 0xD8DCE8;
 				pose.pushPose();
 				pose.translate(cx, cy, 0);
@@ -582,6 +694,47 @@ public final class EditStyle implements LyricStyle {
 				return new Entry(word, 1f + (chorus ? 1.4f : 1.1f) * (1f - Draw.easeOutCubic(k)), Math.min(1f, 0.25f + k), 0f, -1);
 			}
 		}
+	}
+
+	/** A jagged lightning bolt from the sky down onto a word (additive, flickering). */
+	private static void bolt(net.minecraft.client.renderer.SubmitNodeCollector out, PoseStack pose, Vec3 cam, float[] b, float clock, float vis) {
+		float age = clock - b[3];
+		float a = vis * (1f - age / 0.6f) * (((int) (age * 30)) % 3 == 0 ? 0.4f : 1f);
+		if (a < 0.03f) return;
+		Random r = new Random((long) b[4]);
+		int segs = 12;
+		double top = 28;
+		double[] xs = new double[segs + 1], zs = new double[segs + 1];
+		for (int i = 1; i < segs; i++) {
+			xs[i] = xs[i - 1] + (r.nextDouble() - 0.5) * 2.2;
+			zs[i] = zs[i - 1] + (r.nextDouble() - 0.5) * 2.2;
+		}
+		pose.pushPose();
+		pose.translate(b[0] - cam.x, b[1] - cam.y, b[2] - cam.z);
+		int ai = Math.clamp(Math.round(a * 255), 0, 255);
+		out.submitCustomGeometry(pose, RenderTypes.lightning(), (p, vc) -> {
+			for (int w = 0; w < 2; w++) {
+				float half = w == 0 ? 0.35f : 0.12f;
+				int alpha = w == 0 ? ai / 3 : ai;
+				for (int i = 0; i < segs; i++) {
+					float y0 = (float) (top * (segs - i) / segs), y1 = (float) (top * (segs - i - 1) / segs);
+					float x0 = (float) xs[i], z0 = (float) zs[i], x1 = (float) xs[i + 1], z1 = (float) zs[i + 1];
+					// two crossed ribbons, both windings
+					for (int axis = 0; axis < 2; axis++) {
+						float dx = axis == 0 ? half : 0, dz = axis == 0 ? 0 : half;
+						vc.addVertex(p, x0 - dx, y0, z0 - dz).setColor(200, 225, 255, alpha);
+						vc.addVertex(p, x1 - dx, y1, z1 - dz).setColor(200, 225, 255, alpha);
+						vc.addVertex(p, x1 + dx, y1, z1 + dz).setColor(200, 225, 255, alpha);
+						vc.addVertex(p, x0 + dx, y0, z0 + dz).setColor(200, 225, 255, alpha);
+						vc.addVertex(p, x0 - dx, y0, z0 - dz).setColor(200, 225, 255, alpha);
+						vc.addVertex(p, x0 + dx, y0, z0 + dz).setColor(200, 225, 255, alpha);
+						vc.addVertex(p, x1 + dx, y1, z1 + dz).setColor(200, 225, 255, alpha);
+						vc.addVertex(p, x1 - dx, y1, z1 - dz).setColor(200, 225, 255, alpha);
+					}
+				}
+			}
+		});
+		pose.popPose();
 	}
 
 	/** A flat coloured bar behind a word (the highlighted word on a chorus line). */

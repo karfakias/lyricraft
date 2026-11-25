@@ -83,6 +83,8 @@ public final class Config {
 	public boolean editEffects = true;
 	/** Edit style: zoom punches and camera shake on the hits. */
 	public boolean editCamera = true;
+	/** Edit style: cut to cinematic angles around you on the chorus (only while you stand still). */
+	public boolean editAngles = true;
 	/** Address of the online service (your own Cloudflare Worker, see server/README.md). */
 	public String onlineServer = "https://lyricraft.lyricraft-server.workers.dev";
 	/** Keep the playback clock locked to Spotify by measuring and correcting drift. */

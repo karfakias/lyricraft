@@ -79,6 +79,10 @@ public final class LyricraftClient implements ClientModInitializer {
 
 		HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT,
 				Identifier.fromNamespaceAndPath(MOD_ID, "lyrics"), new LyricsHud(this));
+		// no crosshair floating in the middle of a cinematic angle (Edit style)
+		HudElementRegistry.replaceElement(VanillaHudElements.CROSSHAIR, vanilla -> (g, delta) -> {
+			if (!dev.lyricraft.hud.style.CinematicShots.onAngle()) vanilla.extractRenderState(g, delta);
+		});
 		// the Edit style draws its lyrics in the world itself
 		net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents.COLLECT_SUBMITS
 				.register(dev.lyricraft.hud.style.EditStyle::renderWorld);

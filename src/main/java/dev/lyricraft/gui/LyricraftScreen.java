@@ -166,6 +166,9 @@ public final class LyricraftScreen extends Screen implements LyricraftUi {
 		toggle(cx0, y, cw, "Edit: camera moves", () -> cfg().editCamera, v -> cfg().editCamera = v,
 				"In the Edit style, the camera zoom-punches and shakes a little on the beat. Turn it off if it makes you dizzy.");
 		y += 22;
+		toggle(cx0, y, cw, "Edit: cinematic angles", () -> cfg().editAngles, v -> cfg().editAngles = v,
+				"In the Edit style, the view cuts to angles around you on the chorus (over the shoulder, side, wide, from above). Only while you stand still; move and it cuts straight back.");
+		y += 22;
 		toggle(cx0, y, cw, "Edit: popular songs hit harder", () -> cfg().editEffects, v -> cfg().editEffects = v,
 				"In the Edit style, " + dev.lyricraft.hud.style.EditSongs.size() + " popular songs get stronger hits and particles that fit them: hearts, rain, sparks, soul flames, notes.");
 		info = "";
