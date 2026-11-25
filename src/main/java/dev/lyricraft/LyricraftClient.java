@@ -79,6 +79,9 @@ public final class LyricraftClient implements ClientModInitializer {
 
 		HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT,
 				Identifier.fromNamespaceAndPath(MOD_ID, "lyrics"), new LyricsHud(this));
+		// letterbox bars and colour grade for the edit effects, under the crosshair and hotbar
+		HudElementRegistry.attachElementBefore(VanillaHudElements.CROSSHAIR,
+				Identifier.fromNamespaceAndPath(MOD_ID, "edit_underlay"), (g, delta) -> dev.lyricraft.hud.style.EditFx.drawUnder(g));
 
 		LOG.info("Lyricraft {} ready - play something on Spotify!", VERSION);
 	}

@@ -116,6 +116,11 @@ public final class EchoesStyle implements LyricStyle {
 	private int lastSlot = Integer.MIN_VALUE;
 	private float sparkDebt;
 	private final List<float[]> drawnRects = new ArrayList<>();
+	/** TikTok-edit effects for popular songs. */
+	private final EditFx fx = new EditFx();
+	/** First chorus line (the "drop") and the line that repeats most (the hook). */
+	private int firstChorus = -1;
+	private boolean[] hook = new boolean[0];
 
 	@Override
 	public void render(Frame f) {
@@ -131,14 +136,22 @@ public final class EchoesStyle implements LyricStyle {
 			sparks.clear();
 			forLyrics = f.lyrics();
 			chorus = findChorus(f.lyrics());
+			hook = findHook(f.lyrics());
+			firstChorus = -1;
+			for (int i = 0; i < chorus.length; i++) if (chorus[i]) { firstChorus = i; break; }
 			forLevel = level;
 			lastSlot = Integer.MIN_VALUE;
 		}
 
+		var track = f.track();
+		fx.song(track == null ? null : track.title(), track == null ? null : track.artist(), f.cfg().editEffects);
 		if (slot != lastSlot && f.line(slot) != null) {
 			lastSlot = slot;
 			spawn(f, p, slot, now);
+			fx.onLine(isChorus(slot), slot == firstChorus, slot < hook.length && hook[slot], f.width(), f.height());
 		}
+		int active = f.active();
+		fx.update(f.dt(), active >= 0 && isChorus(active), f.width(), f.height());
 
 		// expire old panels
 		Vec3 cam = p.cameraPos();
@@ -158,6 +171,7 @@ public final class EchoesStyle implements LyricStyle {
 		Panel newest = null;
 		for (Panel pn : panels) if (pn.alive()) newest = pn;
 
+		fx.drawBehind(f.g(), f.vis());
 		drawThread(f, now);
 
 		// far ones first so near ones draw on top
@@ -168,6 +182,7 @@ public final class EchoesStyle implements LyricStyle {
 
 		updateSparks(f, newest, now);
 		drawSparks(f);
+		fx.drawFront(f.g(), f.font(), f.vis(), f.time());
 
 		// mark our panels as taken so friends' panels keep clear of them
 		for (float[] r : drawnRects) HudSpace.reserve(r[0], r[1], r[2], r[3]);
@@ -367,7 +382,10 @@ public final class EchoesStyle implements LyricStyle {
 			pn.doneAt = now;
 		}
 		if (current && sungWord > pn.lastWord) {
-			if (pn.lastWord >= 0 || sungWord == 0) burst(f, pn, now, 3);
+			if (pn.lastWord >= 0 || sungWord == 0) {
+				burst(f, pn, now, 3);
+				fx.onWord(isChorus(pn.index), f.width(), f.height());
+			}
 			pn.lastWord = sungWord;
 		}
 
@@ -375,9 +393,11 @@ public final class EchoesStyle implements LyricStyle {
 		float open = Draw.easeOutBack(Math.clamp(age / 0.35f, 0f, 1f));
 		// new lines shoot out from the crosshair to their spot
 		float fly = Draw.easeOutCubic(Math.clamp(age / 0.32f, 0f, 1f));
-		float px = f.width() / 2f + (pt.x() - f.width() / 2f) * fly;
-		float py = f.height() / 2f + (pt.y() - f.height() / 2f) * fly;
-		float size = (0.85f + 0.15f * open) * (0.45f + 0.55f * fly) * (1f - 0.08f * retired) * (1f + 0.025f * beat);
+		// edit effects: everything shakes a little on the hits, the current line zoom-punches
+		float px = f.width() / 2f + (pt.x() - f.width() / 2f) * fly + fx.shakeX(f.time());
+		float py = f.height() / 2f + (pt.y() - f.height() / 2f) * fly + fx.shakeY(f.time());
+		float size = (0.85f + 0.15f * open) * (0.45f + 0.55f * fly) * (1f - 0.08f * retired) * (1f + 0.025f * beat)
+				* (current ? fx.punchScale() : 1f);
 		float lh = f.font().lineHeight * scale;
 		float panelW = (textW + PAD * 2) * scale * size;
 		float panelH = lh * 2.3f * size;
@@ -470,11 +490,19 @@ public final class EchoesStyle implements LyricStyle {
 			}
 			float t = Math.clamp(since / 0.22f, 0f, 1f);
 			float pop = 0.55f + 0.45f * Draw.easeOutBack(t);
+			// on an edit hit the words slam in from big instead
+			if (fx.slam() > 0.05f && ch) pop = 1f + 0.7f * (1f - Draw.easeOutCubic(Math.clamp(since / 0.16f, 0f, 1f)));
 			float rise = (1f - Draw.easeOutCubic(t)) * 5f * s;
 			boolean singing = i == sungWord && progress < 1f;
 			int col = singing ? Draw.mix(acc, 0xFFFFFF, 0.45f) : acc;
 			float cx = wx + ww / 2f, cy = ty + lh * size / 2f;
-			Draw.glowText(g, f.font(), w.text(), cx - ww * pop / 2f, cy - lh * size * pop / 2f + rise, s * pop, col,
+			float wx0 = cx - ww * pop / 2f, wy0 = cy - lh * size * pop / 2f + rise;
+			float split = fx.chroma() * 2.2f * s;
+			if (split > 0.3f && singing) {
+				Draw.text(g, f.font(), w.text(), wx0 - split, wy0, s * pop, Draw.argb(0xFF3B6B, 0.4f * vis), false);
+				Draw.text(g, f.font(), w.text(), wx0 + split, wy0, s * pop, Draw.argb(0x3BE8FF, 0.4f * vis), false);
+			}
+			Draw.glowText(g, f.font(), w.text(), wx0, wy0, s * pop, col,
 					vis * Math.min(1f, t * 1.6f), singing ? 1f + beat : 0.45f);
 		}
 		shine(g, f, text, tx, ty, s, done, vis);
@@ -561,6 +589,23 @@ public final class EchoesStyle implements LyricStyle {
 
 	private boolean isChorus(int index) {
 		return index >= 0 && index < chorus.length && chorus[index];
+	}
+
+	/** The line(s) that repeat the most (at least 3 times): the hook. */
+	private static boolean[] findHook(Lyrics lyrics) {
+		if (lyrics == null) return new boolean[0];
+		int n = lyrics.lines.size();
+		String[] keys = new String[n];
+		java.util.Map<String, Integer> count = new java.util.HashMap<>();
+		int best = 0;
+		for (int i = 0; i < n; i++) {
+			keys[i] = lyrics.lines.get(i).text().toLowerCase(java.util.Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]", "");
+			if (keys[i].length() >= 6) best = Math.max(best, count.merge(keys[i], 1, Integer::sum));
+		}
+		boolean[] out = new boolean[n];
+		if (best < 3) return out;
+		for (int i = 0; i < n; i++) out[i] = count.getOrDefault(keys[i], 0) == best;
+		return out;
 	}
 
 	private static boolean[] findChorus(Lyrics lyrics) {
