@@ -46,6 +46,11 @@ public final class EditStyle implements LyricStyle {
 
 	private static final double REACH = 28, AIR_DIST = 14;
 	private static final int FULL_BRIGHT = 0xF000F0;
+	private static final float FADE_S = 1.1f;
+	/** How thick the block letters are (font pixels) and how many slices make up the sides. */
+	private static final float DEPTH = 3.2f;
+	private static final int DEPTH_LAYERS = 6;
+	private static final String GLITCH = "#$%&*?!<>/\\=+@";
 
 	/** One line stamped somewhere in the world. */
 	private static final class Line {
@@ -64,6 +69,10 @@ public final class EditStyle implements LyricStyle {
 		final float born;
 		float diedAt = -1;
 		float ring = -1;              // when the shockwave started
+		int surfaceColor = -1;        // map colour of the block it's on, or -1
+		int key = -1;                 // the word that gets the coloured bar (the longest word on a chorus line)
+		Line parent;                  // a chorus word that flew to where you were looking: its line
+		boolean crumbled;             // already burst into dust
 
 		Line(int index, String text, Vec3 anchor, Vector3f right, Vector3f up, Vector3f normal, boolean onSurface,
 		     BlockState block, float scale, String[] words, float[] wordX, float[] wordY, float[] wordW, float width,
@@ -203,19 +212,51 @@ public final class EditStyle implements LyricStyle {
 		for (Line l : lines) {
 			if (l.index < 0 || l.diedAt >= 0) continue;
 			Lyrics.Line line = f.line(l.index);
+			if (l.parent != null) continue;
 			if (line == null || f.posMs() < line.startMs()) continue;
 			float progress = active == l.index ? line.progress(f.posMs()) : (f.posMs() >= line.endMs() ? 1f : 0f);
 			List<Lyrics.Word> ws = line.words();
 			for (int i = 0; i < Math.min(ws.size(), l.words.length); i++) {
-				if (l.landedAt[i] >= 0 || progress < ws.get(i).start()) continue;
+				if (l.landedAt[i] != -1f || progress < ws.get(i).start()) continue;
+				// on the chorus, if you've looked somewhere else, the word lands where you're looking now
+				if (l.chorus && i > 0 && lookedAway(f.proj(), l)) {
+					Line w = place(f, -2, l.words[i], true, false);
+					if (w != null) {
+						w.parent = l;
+						w.landedAt[0] = clock;
+						l.landedAt[i] = -2f; // drawn over there instead
+						lines.add(w);
+						land(mc, w, 0);
+						EditCamera.hit(0.45f, 0.3f);
+						continue;
+					}
+				}
 				l.landedAt[i] = clock;
 				land(mc, l, i);
 			}
 		}
 
-		// expire
-		lines.removeIf(l -> l.diedAt >= 0 && clock - l.diedAt > 1.6f || clock - l.born > 40f);
-		while (lines.size() > 4) lines.removeFirst();
+		// words that flew off go when their line goes; going lines crumble into dust in the text's colour
+		for (Line l : lines) {
+			if (l.parent != null && l.diedAt < 0 && l.parent.diedAt >= 0) l.diedAt = l.parent.diedAt;
+			if (l.diedAt >= 0 && !l.crumbled && clock - l.diedAt >= 0) {
+				l.crumbled = true;
+				crumble(mc, l);
+			}
+		}
+		lines.removeIf(l -> l.diedAt >= 0 && clock - l.diedAt > FADE_S || clock - l.born > 40f);
+		while (lines.size() > 14) lines.removeFirst();
+
+		// right before the drop the camera dives into the words, then the drop snaps it back with a flash
+		Lyrics.Line dropLine = firstChorus >= 0 ? f.line(firstChorus) : null;
+		long toDrop = dropLine == null ? Long.MAX_VALUE : dropLine.startMs() - f.posMs();
+		EditCamera.dive(toDrop > 0 && toDrop < 700 ? 1f - toDrop / 700f : 0f);
+		// and the shot keeps moving a little on the chorus
+		EditCamera.sway(active >= 0 && active < chorus.length && chorus[active] && songStyle != EditSongs.Style.SAD ? 1f : 0f);
+
+		// slow push-in while a line is sung (the punch on the next line snaps it back)
+		Lyrics.Line cur = active >= 0 ? f.line(active) : null;
+		EditCamera.drift(cur == null ? 0f : cur.progress(f.posMs()) * (songStyle == EditSongs.Style.SAD ? 0.05f : 0.035f));
 
 		EditCamera.tick(dt, f.cfg().editCamera && vis > 0.3f);
 		flash = Draw.approach(flash, 0f, dt * 3.5f);
@@ -264,7 +305,9 @@ public final class EditStyle implements LyricStyle {
 
 		// rows of a few words each, like captions in an edit
 		Font font = f.font();
-		String[] words = text.trim().split("\\s+");
+		// the chorus is shouted: capitals, like the lyric edits do
+		String shown = ch && index >= 0 ? text.toUpperCase(Locale.ROOT) : text;
+		String[] words = shown.trim().split("\\s+");
 		float space = font.width(" "), rowMax = 64f, rowH = 11f;
 		int[] row = new int[words.length];
 		float[] ww = new float[words.length], left = new float[words.length];
@@ -299,7 +342,21 @@ public final class EditStyle implements LyricStyle {
 		float scale = (float) Math.max(0.02, dist * 0.022) * (ch ? 1.2f : 1f) * (drop ? 1.15f : 1f);
 		float maxW = (float) Math.max(2.5, dist * (surface ? 1.05 : 0.7));
 		scale = Math.min(scale, maxW / width);
-		return new Line(index, text, anchor, right, up, normal, surface, block, scale, words, wx, wy, ww, width, height, ch, drop, clock);
+		Line line = new Line(index, text, anchor, right, up, normal, surface, block, scale, words, wx, wy, ww, width, height, ch, drop, clock);
+		if (ch && index >= 0 && words.length > 1) {
+			int best = 0;
+			for (int i = 1; i < words.length; i++) if (words[i].length() > words[best].length()) best = i;
+			line.key = best;
+		}
+		if (surface && block != null) {
+			try {
+				int c = block.getMapColor(mc.level, hit.getBlockPos()).col;
+				if (c != 0) line.surfaceColor = c;
+			} catch (RuntimeException ignored) {
+				// some blocks don't have a map colour here: keep the album colour
+			}
+		}
+		return line;
 	}
 
 	/** A word hits: dust off the block, the song's particles, and a little camera kick on the chorus. */
@@ -332,6 +389,49 @@ public final class EditStyle implements LyricStyle {
 		if (l.chorus) EditCamera.hit(songStyle != null ? 0.28f : 0.18f, songStyle == EditSongs.Style.SAD ? 0f : 0.22f);
 	}
 
+	/** Has the camera turned well away from this line (about 20 degrees)? */
+	private static boolean lookedAway(Projector p, Line l) {
+		Vec3 cam = p.cameraPos();
+		Vec3 to = l.anchor.subtract(cam).normalize();
+		Vector3f fw = p.forward();
+		return to.x * fw.x + to.y * fw.y + to.z * fw.z < 0.94;
+	}
+
+	/** The line breaks up into dust in the text's colour. */
+	private void crumble(Minecraft mc, Line l) {
+		int col = l.parent != null ? 0xFFFFFF : Draw.mix(0xFFFFFF, lineColor(l), 0.5f);
+		var dust = new net.minecraft.core.particles.DustParticleOptions(col, 1.1f);
+		int budget = 36;
+		for (int i = 0; i < l.words.length && budget > 0; i++) {
+			if (l.landedAt[i] < 0) continue;
+			int n = Math.min(budget, 3 + (int) (l.wordW[i] / 6));
+			budget -= n;
+			for (int k = 0; k < n; k++) {
+				Vec3 at = l.at(l.wordX[i] + (rng.nextFloat() - 0.5f) * l.wordW[i], l.wordY[i] + (rng.nextFloat() - 0.5f) * 7f);
+				mc.level.addParticle(dust, at.x + l.normal.x * 0.05, at.y + l.normal.y * 0.05, at.z + l.normal.z * 0.05,
+						l.normal.x * 0.02, 0.02 + l.normal.y * 0.02, l.normal.z * 0.02);
+			}
+		}
+	}
+
+	/** Glow colour: the song's style, or for other songs the album colour mixed with the surface's colour. */
+	private int lineColor(Line l) {
+		if (songStyle != null) return styleColor();
+		if (l.surfaceColor < 0) return accent;
+		return Draw.mix(accent, Draw.mix(l.surfaceColor, 0xFFFFFF, 0.25f), 0.55f);
+	}
+
+	private int styleColor() {
+		return switch (songStyle) {
+			case DARK -> 0xFF2B3A;
+			case SAD -> 0x8FB6FF;
+			case LOVE -> 0xFF7AB8;
+			case RETRO -> 0xFFC85A;
+			case POP -> Draw.hsv(clock * 60f, 0.6f, 1f);
+			case HYPE -> 0xFFFFFF;
+		};
+	}
+
 	// ------------------------------------------------------------------ in the world (render pass)
 
 	/** Called from the level render event: submits the stamped lines as 3D text. */
@@ -348,21 +448,14 @@ public final class EditStyle implements LyricStyle {
 		PoseStack pose = ctx.poseStack();
 		var out = ctx.submitNodeCollector();
 		Font font = mc.font;
-		int glowCol = songStyle == null ? accent : switch (songStyle) {
-			case DARK -> 0xFF2B3A;
-			case SAD -> 0x8FB6FF;
-			case LOVE -> 0xFF7AB8;
-			case RETRO -> 0xFFC85A;
-			case POP -> Draw.hsv(clock * 60f, 0.6f, 1f);
-			case HYPE -> 0xFFFFFF;
-		};
-
 		for (Line l : lines) {
-			float fade = l.diedAt < 0 ? 1f : 1f - Math.clamp((clock - l.diedAt) / 1.6f, 0f, 1f);
+			int glowCol = lineColor(l);
+			float fade = l.diedAt < 0 ? 1f : 1f - Math.clamp((clock - l.diedAt) / FADE_S, 0f, 1f);
 			float a = fade * vis;
 			if (a < 0.02f) continue;
 			pose.pushPose();
 			pose.translate(l.anchor.x - cam.x, l.anchor.y - cam.y, l.anchor.z - cam.z);
+			if (l.drop && clock - l.born < 1.4f) beam(out, pose, l, glowCol, (1f - (clock - l.born) / 1.4f) * vis);
 			Matrix4f basis = new Matrix4f(
 					l.right.x, l.right.y, l.right.z, 0,
 					l.up.x, l.up.y, l.up.z, 0,
@@ -385,10 +478,10 @@ public final class EditStyle implements LyricStyle {
 				if (l.landedAt[i] < 0) continue;
 				float age = clock - l.landedAt[i];
 				if (age < 0) continue;
-				float k = Math.clamp(age / 0.13f, 0f, 1f);
-				float slam = 1f + 1.1f * (1f - Draw.easeOutCubic(k));
-				float wa = a * Math.min(1f, 0.25f + k);
-				float cx = l.wordX[i], cy = l.wordY[i];
+				Entry e = entry(l.words[i], age, l.chorus);
+				float slam = e.scale;
+				float wa = a * e.alpha;
+				float cx = l.wordX[i], cy = l.wordY[i] + e.dy;
 				boolean newest = current && (i == l.words.length - 1 || l.landedAt[i + 1] < 0);
 
 				// glow behind the word that just hit
@@ -396,16 +489,147 @@ public final class EditStyle implements LyricStyle {
 					float g = (newest ? 0.35f : 0f) + 0.5f * Math.max(0f, 1f - age / 0.4f);
 					glow(out, pose, cx, cy, l.wordW[i] / 2f + 3, 5.5f, glowCol, g * a);
 				}
+				// chorus: echo copies of the word, a bit bigger and fainter, pulsing (the classic repeat-text look)
+				if (l.chorus && current && e.text.equals(l.words[i])) {
+					for (int c = 1; c <= 2; c++) {
+						float es = slam * (1f + c * 0.11f + 0.03f * (float) Math.sin(clock * 7f + c));
+						pose.pushPose();
+						pose.translate(cx, cy, DEPTH + 0.05f * c);
+						pose.scale(es, es, 1f);
+						out.submitText(pose, -l.wordW[i] / 2f, -4.5f, FormattedCharSequence.forward(l.words[i], Style.EMPTY), false,
+								mode, FULL_BRIGHT, Draw.argb(glowCol, wa * (c == 1 ? 0.22f : 0.1f)), 0, 0);
+						pose.popPose();
+					}
+				}
+				boolean key = i == l.key && current;
+				int base = e.tint >= 0 ? e.tint : key ? 0xFFFFFF
+						: newest ? Draw.mix(0xFFFFFF, glowCol, 0.35f) : current ? 0xFFFFFF : 0xD8DCE8;
 				pose.pushPose();
 				pose.translate(cx, cy, 0);
 				pose.scale(slam, slam, 1f);
-				int col = newest ? Draw.argb(Draw.mix(0xFFFFFF, glowCol, 0.35f), wa) : Draw.argb(current ? 0xFFFFFF : 0xD8DCE8, wa);
-				out.submitText(pose, -l.wordW[i] / 2f, -4.5f, FormattedCharSequence.forward(l.words[i], Style.EMPTY), true,
-						mode, FULL_BRIGHT, col, 0, 0);
+				// the key word of a chorus line sits on a coloured bar
+				if (key) bar(out, pose, l.wordW[i] / 2f + 2.5f, 5.5f, glowCol == 0xFFFFFF ? accent : glowCol, wa);
+				// solid 3D block letters: the word stacked a few times along the depth, sides getting darker
+				// (standing up off the ground, sticking out of walls, like the letters in Minecraft lyric edits)
+				FormattedCharSequence seq = FormattedCharSequence.forward(e.text, Style.EMPTY);
+				int layers = DEPTH_LAYERS;
+				int side = l.surfaceColor >= 0 ? Draw.mix(base, l.surfaceColor, 0.35f) : base;
+				for (int d = 0; d < layers; d++) {
+					float z = DEPTH * d / layers;
+					float dark = 0.62f - 0.3f * d / layers;
+					pose.pushPose();
+					pose.translate(0, 0, z);
+					out.submitText(pose, -l.wordW[i] / 2f, -4.5f, seq, false, mode, FULL_BRIGHT,
+							Draw.argb(Draw.mix(side, 0x000000, dark), wa), 0, 0);
+					pose.popPose();
+				}
+				pose.translate(0, 0, DEPTH);
+				out.submitText(pose, -l.wordW[i] / 2f, -4.5f, seq, false, mode, FULL_BRIGHT, Draw.argb(base, wa), 0, 0);
 				pose.popPose();
 			}
 			pose.popPose();
 		}
+	}
+
+	/** How a word looks while it comes in: its own entrance for each kind of song. */
+	private record Entry(String text, float scale, float alpha, float dy, int tint) {}
+
+	private Entry entry(String word, float age, boolean chorus) {
+		EditSongs.Style st = songStyle == null ? EditSongs.Style.HYPE : songStyle;
+		switch (st) {
+			case DARK -> {
+				// glitch: scrambled symbols that resolve into the word, flickering red
+				if (age < 0.22f) {
+					StringBuilder b = new StringBuilder();
+					Random r = new Random((long) (age * 30) * 31 + word.hashCode());
+					for (int c = 0; c < word.length(); c++) {
+						b.append(c < word.length() * (age / 0.22f) ? word.charAt(c) : GLITCH.charAt(r.nextInt(GLITCH.length())));
+					}
+					return new Entry(b.toString(), 1.05f, 0.9f, (r.nextFloat() - 0.5f) * 1.5f, 0xFF3B4A);
+				}
+				return new Entry(word, 1f, 1f, 0f, -1);
+			}
+			case RETRO -> {
+				// typewriter: letter by letter
+				int n = Math.min(word.length(), 1 + (int) (age / 0.035f));
+				return new Entry(word.substring(0, n), 1f, 1f, 0f, -1);
+			}
+			case SAD -> {
+				// slow fade, drifting up into place
+				float k = Math.clamp(age / 0.55f, 0f, 1f);
+				return new Entry(word, 1f, Draw.easeOutCubic(k), (1f - Draw.easeOutCubic(k)) * 6f, -1);
+			}
+			case LOVE -> {
+				// soft pop
+				float k = Math.clamp(age / 0.3f, 0f, 1f);
+				return new Entry(word, 0.6f + 0.4f * Draw.easeOutBack(k), Math.min(1f, k * 2f), 0f, -1);
+			}
+			case POP -> {
+				// bounce in from above
+				float k = Math.clamp(age / 0.45f, 0f, 1f);
+				float bounce = (1f - k) * Math.abs((float) Math.cos(k * Math.PI * 2.5f)) * 9f;
+				return new Entry(word, 1f, Math.min(1f, k * 3f), -bounce, -1);
+			}
+			default -> {
+				if (songStyle == null && !chorus) {
+					// songs not on the list: the word builds up letter by letter with a small drop
+					int n = Math.min(word.length(), 1 + (int) (age / 0.028f));
+					float k = Math.clamp(age / 0.18f, 0f, 1f);
+					return new Entry(word.substring(0, n), 1f + 0.25f * (1f - Draw.easeOutCubic(k)), 1f, -2.5f * (1f - k), -1);
+				}
+				// slam: comes in big and hits the surface
+				float k = Math.clamp(age / 0.13f, 0f, 1f);
+				return new Entry(word, 1f + (chorus ? 1.4f : 1.1f) * (1f - Draw.easeOutCubic(k)), Math.min(1f, 0.25f + k), 0f, -1);
+			}
+		}
+	}
+
+	/** A flat coloured bar behind a word (the highlighted word on a chorus line). */
+	private static void bar(net.minecraft.client.renderer.SubmitNodeCollector out, PoseStack pose, float hw, float hh, int rgb, float alpha) {
+		int r = (rgb >> 16) & 255, g = (rgb >> 8) & 255, b = rgb & 255, a = Math.clamp(Math.round(alpha * 0.85f * 255), 0, 255);
+		out.submitCustomGeometry(pose, RenderTypes.debugQuads(), (p, vc) -> {
+			vc.addVertex(p, -hw, -hh, 0.05f).setColor(r, g, b, a);
+			vc.addVertex(p, -hw, hh, 0.05f).setColor(r, g, b, a);
+			vc.addVertex(p, hw, hh, 0.05f).setColor(r, g, b, a);
+			vc.addVertex(p, hw, -hh, 0.05f).setColor(r, g, b, a);
+			vc.addVertex(p, -hw, -hh, 0.05f).setColor(r, g, b, a);
+			vc.addVertex(p, hw, -hh, 0.05f).setColor(r, g, b, a);
+			vc.addVertex(p, hw, hh, 0.05f).setColor(r, g, b, a);
+			vc.addVertex(p, -hw, hh, 0.05f).setColor(r, g, b, a);
+		});
+	}
+
+	/** A beam of light shooting up from the line on the drop (two crossed quads, additive). */
+	private static void beam(net.minecraft.client.renderer.SubmitNodeCollector out, PoseStack pose, Line l, int rgb, float alpha) {
+		if (alpha < 0.02f) return;
+		int r = (rgb >> 16) & 255, g = (rgb >> 8) & 255, b = rgb & 255, ai = Math.clamp(Math.round(alpha * 0.6f * 255), 0, 255);
+		float w = Math.max(0.4f, l.height * l.scale * 0.6f), h = 48f;
+		out.submitCustomGeometry(pose, RenderTypes.lightning(), (p, vc) -> {
+			for (int side = 0; side < 2; side++) {
+				float dx = side == 0 ? w : 0, dz = side == 0 ? 0 : w;
+				// bright at the bottom, gone at the top, soft at both edges (two halves)
+				vc.addVertex(p, -dx, 0, -dz).setColor(r, g, b, 0);
+				vc.addVertex(p, 0, 0, 0).setColor(r, g, b, ai);
+				vc.addVertex(p, 0, h, 0).setColor(r, g, b, 0);
+				vc.addVertex(p, -dx, h, -dz).setColor(r, g, b, 0);
+				vc.addVertex(p, 0, 0, 0).setColor(r, g, b, ai);
+				vc.addVertex(p, dx, 0, dz).setColor(r, g, b, 0);
+				vc.addVertex(p, dx, h, dz).setColor(r, g, b, 0);
+				vc.addVertex(p, 0, h, 0).setColor(r, g, b, 0);
+			}
+			// and the other winding, so it's visible from both sides
+			for (int side = 0; side < 2; side++) {
+				float dx = side == 0 ? w : 0, dz = side == 0 ? 0 : w;
+				vc.addVertex(p, -dx, 0, -dz).setColor(r, g, b, 0);
+				vc.addVertex(p, -dx, h, -dz).setColor(r, g, b, 0);
+				vc.addVertex(p, 0, h, 0).setColor(r, g, b, 0);
+				vc.addVertex(p, 0, 0, 0).setColor(r, g, b, ai);
+				vc.addVertex(p, 0, 0, 0).setColor(r, g, b, ai);
+				vc.addVertex(p, 0, h, 0).setColor(r, g, b, 0);
+				vc.addVertex(p, dx, h, dz).setColor(r, g, b, 0);
+				vc.addVertex(p, dx, 0, dz).setColor(r, g, b, 0);
+			}
+		});
 	}
 
 	/** Soft additive glow around a box: bright inside, fading to nothing over a border. */
