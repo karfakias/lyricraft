@@ -50,6 +50,8 @@ public final class EditStyle implements LyricStyle {
 	/** How thick the block letters are (font pixels) and how many slices make up the sides. */
 	private static final float DEPTH = 3.2f;
 	private static final int DEPTH_LAYERS = 6;
+	/** Height of a real-font word, in font pixels (the pixel font is 9). */
+	private static final float ART_H = 13f;
 	private static final String GLITCH = "#$%&*?!<>/\\=+@";
 
 	/** One line stamped somewhere in the world. */
@@ -72,6 +74,7 @@ public final class EditStyle implements LyricStyle {
 		int surfaceColor = -1;        // map colour of the block it's on, or -1
 		int key = -1;                 // the word that gets the coloured bar (the longest word on a chorus line)
 		WorldKeywords.Kind[] kinds;   // words that do something to the world (fire, rain, storm...)
+		WordArt.Glyph[] art;          // words drawn with a real font (null = the pixel font)
 		Line parent;                  // a chorus word that flew to where you were looking: its line
 		boolean crumbled;             // already burst into dust
 
@@ -290,6 +293,7 @@ public final class EditStyle implements LyricStyle {
 		if (flash < 0.02f) flashColor = 0xFFFFFF;
 		if (flash > 0.01f) f.g().fill(0, 0, f.width(), f.height(), Draw.argb(flashColor, 0.28f * flash * flash * vis));
 		drawSlide(f);
+		drawCredits(f);
 	}
 
 	/** Raycast from the camera and stamp the line on what it hits (or in the air). */
@@ -339,6 +343,21 @@ public final class EditStyle implements LyricStyle {
 		// the chorus is shouted: capitals, like the lyric edits do
 		String shown = ch && index >= 0 ? text.toUpperCase(Locale.ROOT) : text;
 		String[] words = shown.trim().split("\\s+");
+		// fonts, like the edits: one look per kind of song; other songs keep the pixel font but
+		// the key word of a chorus line (the longest) gets an elegant serif, mixing fonts like they do
+		int keyWord = -1;
+		if (ch && index >= 0 && words.length > 1) {
+			keyWord = 0;
+			for (int i = 1; i < words.length; i++) if (words[i].length() > words[keyWord].length()) keyWord = i;
+		}
+		WordArt.Face face = faceFor(index);
+		WordArt.Glyph[] art = new WordArt.Glyph[words.length];
+		for (int i = 0; i < words.length; i++) {
+			WordArt.Face wf = face != null ? face : i == keyWord ? WordArt.Face.SERIF_ITALIC : null;
+			if (wf == null) continue;
+			art[i] = WordArt.get(wf, words[i]);
+			if (art[i] != null) words[i] = WordArt.shown(wf, words[i]);
+		}
 		float space = font.width(" "), rowMax = 64f, rowH = 11f;
 		int[] row = new int[words.length];
 		float[] ww = new float[words.length], left = new float[words.length];
@@ -346,14 +365,14 @@ public final class EditStyle implements LyricStyle {
 		float x = 0;
 		int r = 0, inRow = 0;
 		for (int i = 0; i < words.length; i++) {
-			ww[i] = font.width(words[i]);
+			ww[i] = art[i] != null ? ART_H * art[i].aspect() : font.width(words[i]);
 			if (inRow > 0 && (x + space + ww[i] > rowMax || inRow >= 3)) {
 				rowW.add(x);
 				r++;
 				x = 0;
 				inRow = 0;
 			}
-			if (inRow > 0) x += space;
+			if (inRow > 0) x += art[i] != null && art[i - 1] != null ? space * 0.25f : space;
 			left[i] = x;
 			row[i] = r;
 			x += ww[i];
@@ -374,6 +393,7 @@ public final class EditStyle implements LyricStyle {
 		float maxW = (float) Math.max(2.5, dist * (surface ? 1.05 : 0.7));
 		scale = Math.min(scale, maxW / width);
 		Line line = new Line(index, text, anchor, right, up, normal, surface, block, scale, words, wx, wy, ww, width, height, ch, drop, clock);
+		line.art = art;
 		line.kinds = new WorldKeywords.Kind[words.length];
 		for (int i = 0; i < words.length; i++) line.kinds[i] = WorldKeywords.find(words[i]);
 		if (ch && index >= 0 && words.length > 1) {
@@ -504,6 +524,46 @@ public final class EditStyle implements LyricStyle {
 		};
 	}
 
+	/** End of the song: a little credits card, like the edits finish on. */
+	private void drawCredits(Frame f) {
+		var lyr = f.lyrics();
+		var track = f.track();
+		if (lyr == null || lyr.lines.isEmpty() || track == null) return;
+		long after = f.posMs() - lyr.lines.getLast().endMs();
+		if (after < 1200 || after > 9200) return;
+		// clear the stage: whatever's still standing crumbles away
+		for (Line l : lines) if (l.diedAt < 0) l.diedAt = clock;
+		float t = (after - 1200) / 1000f;
+		float a = vis * Math.min(1f, t / 0.8f) * Math.min(1f, (8f - t) / 1f);
+		if (a < 0.02f) return;
+		var g = f.g();
+		var font = f.font();
+		int w = f.width(), h = f.height();
+		g.fill(0, 0, w, h, Draw.argb(0x000000, 0.5f * a));
+		float rise = (1f - Draw.easeOutCubic(Math.min(1f, t / 1.2f))) * 12f;
+		float cy = h * 0.38f + rise;
+		int col = songStyle != null ? styleColor() : accent;
+		// the title in an elegant serif (pixel font if system fonts aren't available)
+		WordArt.Glyph title = WordArt.get(WordArt.Face.SERIF_ITALIC, track.title());
+		float y = cy;
+		if (title != null) {
+			float th = 40f, tw = Math.min(w * 0.85f, th * title.aspect());
+			th = tw / title.aspect();
+			dev.lyricraft.hud.Sprites.draw(g, title.tex(), w / 2f - tw / 2f, y, tw, th, Draw.argb(0xFFFFFF, a));
+			y += th + 2;
+		}
+		String[] lines = {title != null ? "" : track.title(), track.artist() == null ? "" : track.artist(), "", "edited with Lyricraft"};
+		float[] sizes = {2.2f, 1.2f, 0.6f, 0.9f};
+		for (int i = 0; i < lines.length; i++) {
+			if (i == 0 && lines[0].isEmpty()) continue;
+			String s = Draw.ellipsize(font, lines[i], Math.round(w * 0.8f / sizes[i]));
+			float sw = font.width(s) * sizes[i];
+			int c = i == 0 ? 0xFFFFFF : i == 3 ? col : 0xD8DCE8;
+			if (!s.isEmpty()) Draw.glowText(g, font, s, w / 2f - sw / 2f, y, sizes[i], c, a * (i == 3 ? 0.9f : 1f), i == 0 ? 0.5f : 0f);
+			y += font.lineHeight * sizes[i] + 4;
+		}
+	}
+
 	/** The look slide: slides in at the start of a song with letterbox bars, then slides away. */
 	private void drawSlide(Frame f) {
 		float t = clock - slideAt;
@@ -601,7 +661,7 @@ public final class EditStyle implements LyricStyle {
 					glow(out, pose, cx, cy, l.wordW[i] / 2f + 3, 5.5f, gc, (l.kinds != null && l.kinds[i] != null ? g + 0.3f : g) * a);
 				}
 				// chorus: echo copies of the word, a bit bigger and fainter, pulsing (the classic repeat-text look)
-				if (l.chorus && current && e.text.equals(l.words[i])) {
+				if (l.chorus && current && e.text.equals(l.words[i]) && (l.art == null || l.art[i] == null)) {
 					for (int c = 1; c <= 2; c++) {
 						float es = slam * (1f + c * 0.11f + 0.03f * (float) Math.sin(clock * 7f + c));
 						pose.pushPose();
@@ -621,11 +681,18 @@ public final class EditStyle implements LyricStyle {
 				pose.scale(slam, slam, 1f);
 				// the key word of a chorus line sits on a coloured bar
 				if (key) bar(out, pose, l.wordW[i] / 2f + 2.5f, 5.5f, glowCol == 0xFFFFFF ? accent : glowCol, wa);
+				int side = l.surfaceColor >= 0 ? Draw.mix(base, l.surfaceColor, 0.35f) : base;
+				WordArt.Glyph glyph = l.art == null ? null : l.art[i];
+				if (glyph != null) {
+					float reveal = l.words[i].isEmpty() ? 1f : Math.min(1f, e.text.length() / (float) l.words[i].length());
+					artWord(out, pose, glyph, l.wordW[i], reveal, base, side, wa, l.onSurface);
+					pose.popPose();
+					continue;
+				}
 				// solid 3D block letters: the word stacked a few times along the depth, sides getting darker
 				// (standing up off the ground, sticking out of walls, like the letters in Minecraft lyric edits)
 				FormattedCharSequence seq = FormattedCharSequence.forward(e.text, Style.EMPTY);
 				int layers = DEPTH_LAYERS;
-				int side = l.surfaceColor >= 0 ? Draw.mix(base, l.surfaceColor, 0.35f) : base;
 				for (int d = 0; d < layers; d++) {
 					float z = DEPTH * d / layers;
 					float dark = 0.62f - 0.3f * d / layers;
@@ -633,6 +700,14 @@ public final class EditStyle implements LyricStyle {
 					pose.translate(0, 0, z);
 					out.submitText(pose, -l.wordW[i] / 2f, -4.5f, seq, false, mode, FULL_BRIGHT,
 							Draw.argb(Draw.mix(side, 0x000000, dark), wa), 0, 0);
+					pose.popPose();
+				}
+				// a dark outline round the front, like the white-on-black edit captions
+				int ol = Draw.argb(0x101014, wa * 0.85f);
+				for (int o = 0; o < 4; o++) {
+					pose.pushPose();
+					pose.translate(o == 0 ? -0.7f : o == 1 ? 0.7f : 0f, o == 2 ? -0.7f : o == 3 ? 0.7f : 0f, DEPTH - 0.04f);
+					out.submitText(pose, -l.wordW[i] / 2f, -4.5f, seq, false, mode, FULL_BRIGHT, ol, 0, 0);
 					pose.popPose();
 				}
 				pose.translate(0, 0, DEPTH);
@@ -735,6 +810,51 @@ public final class EditStyle implements LyricStyle {
 			}
 		});
 		pose.popPose();
+	}
+
+	/** Font for a line: by the song's style; for other songs only the title gets one. */
+	private WordArt.Face faceFor(int index) {
+		if (songStyle == null) return index == -1 ? WordArt.Face.SERIF_ITALIC : null;
+		return switch (songStyle) {
+			case HYPE -> WordArt.Face.IMPACT;
+			case DARK -> WordArt.Face.SERIF_BOLD;
+			case SAD -> index == -1 ? WordArt.Face.SCRIPT : WordArt.Face.SERIF_ITALIC;
+			case LOVE -> WordArt.Face.SCRIPT;
+			case POP -> WordArt.Face.HEAVY;
+			case RETRO -> WordArt.Face.MONO;
+		};
+	}
+
+	/** A real-font word as block letters: the texture stacked along the depth, sides darker, front on top. */
+	private static void artWord(net.minecraft.client.renderer.SubmitNodeCollector out, PoseStack pose, WordArt.Glyph g, float w,
+	                            float reveal, int base, int side, float alpha, boolean surface) {
+		var id = g.tex().id();
+		var rt = surface ? RenderTypes.textPolygonOffset(id) : RenderTypes.text(id);
+		float h = ART_H, x0 = -w / 2f, x1 = x0 + w * reveal, y0 = -h / 2f, y1 = h / 2f;
+		out.submitCustomGeometry(pose, rt, (p, vc) -> {
+			int n = DEPTH_LAYERS * 2;
+			for (int d = 0; d <= n; d++) {
+				boolean front = d == n;
+				float z = DEPTH * d / n;
+				int c = front ? base : Draw.mix(side, 0x000000, 0.66f - 0.3f * d / n);
+				int a = Math.clamp(Math.round(alpha * 255), 0, 255);
+				int r = (c >> 16) & 255, gg = (c >> 8) & 255, b = c & 255;
+				texQuad(vc, p, x0, y0, x1, y1, z, reveal, r, gg, b, a);
+			}
+		});
+	}
+
+	private static void texQuad(VertexConsumer vc, PoseStack.Pose p, float x0, float y0, float x1, float y1, float z, float u1,
+	                            int r, int g, int b, int a) {
+		// both windings, so it shows whichever way it ends up facing
+		vc.addVertex(p, x0, y0, z).setColor(r, g, b, a).setUv(0, 0).setLight(FULL_BRIGHT);
+		vc.addVertex(p, x0, y1, z).setColor(r, g, b, a).setUv(0, 1).setLight(FULL_BRIGHT);
+		vc.addVertex(p, x1, y1, z).setColor(r, g, b, a).setUv(u1, 1).setLight(FULL_BRIGHT);
+		vc.addVertex(p, x1, y0, z).setColor(r, g, b, a).setUv(u1, 0).setLight(FULL_BRIGHT);
+		vc.addVertex(p, x0, y0, z).setColor(r, g, b, a).setUv(0, 0).setLight(FULL_BRIGHT);
+		vc.addVertex(p, x1, y0, z).setColor(r, g, b, a).setUv(u1, 0).setLight(FULL_BRIGHT);
+		vc.addVertex(p, x1, y1, z).setColor(r, g, b, a).setUv(u1, 1).setLight(FULL_BRIGHT);
+		vc.addVertex(p, x0, y1, z).setColor(r, g, b, a).setUv(0, 1).setLight(FULL_BRIGHT);
 	}
 
 	/** A flat coloured bar behind a word (the highlighted word on a chorus line). */
