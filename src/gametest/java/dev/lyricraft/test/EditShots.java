@@ -8,21 +8,14 @@ import dev.lyricraft.media.MediaSnapshot;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
+import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
 
 /**
- * Screenshots of the edit effects, one per style. Only runs with LYRICRAFT_EDITS=1.
- * Uses the made-up demo lyrics under the names of songs on the list (no real lyrics).
+ * Screenshots of the Edit style. Only runs with LYRICRAFT_EDITS=1.
+ * Builds a wall with a log pillar in front of it, then plays the made-up demo lyrics under the
+ * names of songs on the popular list (no real lyrics anywhere).
  */
 public final class EditShots implements FabricClientGameTest {
-
-	private static final String[][] SONGS = {
-			{"Believer", "Imagine Dragons", "hype"},
-			{"Starboy", "The Weeknd", "dark"},
-			{"Another Love", "Tom Odell", "sad"},
-			{"Die With A Smile", "Lady Gaga, Bruno Mars", "love"},
-			{"Espresso", "Sabrina Carpenter", "pop"},
-			{"Blinding Lights", "The Weeknd", "retro"},
-	};
 
 	@Override
 	public void runTest(ClientGameTestContext ctx) {
@@ -34,9 +27,21 @@ public final class EditShots implements FabricClientGameTest {
 		try (TestSingleplayerContext world = ctx.worldBuilder().setUseConsistentSettings(false)
 				.adjustSettings(s -> s.setSeed("lyricraft")).create()) {
 			world.getConnection().waitForChunksRender();
-			var server = world.getServer();
-			server.runCommand("time set 13000");
+			TestServerContext server = world.getServer();
+			server.runCommand("time set 13200");
 			server.runCommand("weather clear 100000");
+			server.runOnServer(s -> s.getPlayerList().getPlayers().forEach(p -> p.setGameMode(net.minecraft.world.level.GameType.CREATIVE)));
+			int[] at = ctx.computeOnClient(mc -> new int[]{mc.player.getBlockX(), mc.player.getBlockY(), mc.player.getBlockZ()});
+			int x = at[0], y = at[1], z = at[2];
+			// a little stage: flat floor, clear air, a wall ahead and a log pillar in front of it
+			server.runCommand(String.format("fill %d %d %d %d %d %d air", x - 10, y, z - 14, x + 10, y + 10, z + 4));
+			server.runCommand(String.format("fill %d %d %d %d %d %d grass_block", x - 10, y - 1, z - 14, x + 10, y - 1, z + 4));
+			server.runCommand(String.format("fill %d %d %d %d %d %d stone_bricks", x - 9, y, z - 10, x + 9, y + 8, z - 10));
+			server.runCommand(String.format("fill %d %d %d %d %d %d oak_log", x + 2, y, z - 6, x + 2, y + 5, z - 6));
+			server.runCommand(String.format("tp @a %d.5 %d %d.5 180 0", x, y, z));
+			ctx.waitTicks(20);
+			world.getConnection().waitForChunksRender();
+
 			ctx.runOnClient(mc -> {
 				mc.options.guiScale().set(3);
 				mc.options.bobView().set(false);
@@ -47,40 +52,67 @@ public final class EditShots implements FabricClientGameTest {
 				cfg.cardX = 0f;
 				cfg.cardY = 0f;
 				cfg.overlay = Config.Overlay.NONE;
-				cfg.vibe = Config.Vibe.SUBTLE;
+				cfg.vibe = Config.Vibe.OFF;
 				cfg.online = false;
-				cfg.style = Config.Style.ECHOES;
+				cfg.style = Config.Style.EDIT;
 				cfg.editEffects = true;
+				cfg.editCamera = true;
 			});
-			for (String[] song : SONGS) {
-				CoverArt.showDemo(track(song, 0).trackKey(), GalleryShots.cover());
-				// title card at the start
-				ctx.runOnClient(mc -> mod.showDemo(track(song, 6500), lyrics));
-				ctx.waitTicks(12);
-				if (song[2].equals("hype")) ctx.takeScreenshot("edit-intro-" + song[2]);
-				// a few lines while turning, then the first chorus (the drop)
-				for (int k = 0; k < 5; k++) {
-					int kk = k;
-					ctx.runOnClient(mc -> {
-						mc.player.setYRot(-40 + kk * 16);
-						mc.player.setXRot(kk % 2 == 0 ? -6 : 3);
-						mod.showDemo(track(song, lyrics.lines.get(kk).startMs() - 100), lyrics);
-					});
-					ctx.waitTicks(5);
-				}
-				ctx.runOnClient(mc -> {
-					mc.player.setYRot(30);
-					mod.showDemo(track(song, lyrics.lines.get(5).startMs() + 250), lyrics);
-				});
-				ctx.waitTicks(3);
-				ctx.takeScreenshot("edit-drop-" + song[2]);
-				ctx.waitTicks(30);
-				ctx.takeScreenshot("edit-chorus-" + song[2]);
-				ctx.runOnClient(mc -> mod.showDemo(null, null));
-				ctx.waitTicks(5);
+
+			// 1) song title stamped on the wall before the first line, then the drop on the wall
+			String[] hype = {"Believer", "Imagine Dragons"};
+			CoverArt.showDemo(track(hype, 0).trackKey(), GalleryShots.cover());
+			look(ctx, 180, 0);
+			ctx.runOnClient(mc -> mod.showDemo(track(hype, 3000), lyrics));
+			ctx.waitTicks(45);
+			ctx.takeScreenshot("edit-wall-intro");
+			for (int k = 0; k < 5; k++) {
+				int kk = k;
+				ctx.runOnClient(mc -> mod.showDemo(track(hype, lyrics.lines.get(kk).startMs() - 100), lyrics));
+				ctx.waitTicks(4);
 			}
-			ctx.runOnClient(mc -> CoverArt.showDemo(null, null));
+			look(ctx, 180, -4);
+			// the first chorus line (it comes back at the end of the song): the drop
+			int drop = 0;
+			while (!lyrics.lines.get(drop).text().startsWith("Hold on")) drop++;
+			int dropLine = drop;
+			ctx.runOnClient(mc -> mod.showDemo(track(hype, lyrics.lines.get(dropLine).startMs() - 60), lyrics));
+			ctx.waitTicks(5);
+			ctx.takeScreenshot("edit-wall-drop");
+			ctx.waitTicks(40);
+			ctx.takeScreenshot("edit-wall-chorus");
+
+			// 2) a love song, looking at the ground
+			String[] love = {"Die With A Smile", "Lady Gaga, Bruno Mars"};
+			CoverArt.showDemo(track(love, 0).trackKey(), GalleryShots.cover());
+			look(ctx, 150, 48);
+			ctx.runOnClient(mc -> mod.showDemo(track(love, lyrics.lines.get(6).startMs() - 60), lyrics));
+			ctx.waitTicks(50);
+			ctx.takeScreenshot("edit-ground-love");
+
+			// 3) a song that isn't on the list, up in the sky
+			String[] plain = {GalleryShots.TITLE, GalleryShots.ARTIST};
+			CoverArt.showDemo(track(plain, 0).trackKey(), GalleryShots.cover());
+			look(ctx, 0, -35);
+			ctx.runOnClient(mc -> mod.showDemo(track(plain, lyrics.lines.get(8).startMs() - 60), lyrics));
+			ctx.waitTicks(50);
+			ctx.takeScreenshot("edit-sky-plain");
+
+			ctx.runOnClient(mc -> {
+				mod.showDemo(null, null);
+				CoverArt.showDemo(null, null);
+			});
 		}
+	}
+
+	private static void look(ClientGameTestContext ctx, float yaw, float pitch) {
+		ctx.runOnClient(mc -> {
+			mc.player.setYRot(yaw);
+			mc.player.setXRot(pitch);
+			mc.player.yRotO = yaw;
+			mc.player.xRotO = pitch;
+		});
+		ctx.waitTicks(2);
 	}
 
 	private static MediaSnapshot track(String[] song, long posMs) {

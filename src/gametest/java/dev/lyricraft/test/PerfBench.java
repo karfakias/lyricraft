@@ -74,13 +74,13 @@ public final class PerfBench implements FabricClientGameTest {
 				c.style = Config.Style.ECHOES;
 				c.vibe = Config.Vibe.FULL;
 			}, true);
-			// a song on the popular list, so the edit effects run (first chorus is line 5)
+			// the Edit style on a song from the popular list (hits harder, more particles)
 			title = "Believer";
 			artist = "Imagine Dragons";
 			CoverArt.showDemo(track(0).trackKey(), GalleryShots.cover());
-			run(ctx, mod, lyrics, report, "echoes + edit effects", c -> {
+			run(ctx, mod, lyrics, report, "edit + popular song", c -> {
 				base.accept(c);
-				c.style = Config.Style.ECHOES;
+				c.style = Config.Style.EDIT;
 				c.editEffects = true;
 			}, true);
 			title = GalleryShots.TITLE;
