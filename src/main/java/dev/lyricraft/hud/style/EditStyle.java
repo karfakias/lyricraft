@@ -123,6 +123,8 @@ public final class EditStyle implements LyricStyle {
 	private float flash;
 	private int accent = 0xFFFFFF;
 	private EditSongs.Style songStyle;
+	/** The song's own look (slide name, colour, font, chorus sky, chorus weather), or null. */
+	private EditSongs.Profile profile;
 	private String songKey = "";
 	private boolean introShown;
 	private float vis;
@@ -176,7 +178,8 @@ public final class EditStyle implements LyricStyle {
 		String key = track == null ? "" : track.title() + "\u0000" + track.artist();
 		if (!key.equals(songKey)) {
 			songKey = key;
-			songStyle = f.cfg().editEffects && track != null ? EditSongs.find(track.title(), track.artist()) : null;
+			profile = f.cfg().editEffects && track != null ? EditSongs.profile(track.title(), track.artist()) : null;
+			songStyle = profile == null ? null : profile.style();
 			if (track != null) {
 				slideAt = clock;
 				slideTitle = track.title();
@@ -216,6 +219,12 @@ public final class EditStyle implements LyricStyle {
 				lines.add(l);
 				float boost = songStyle != null ? 1f : 0.7f;
 				if (ch) CinematicShots.cut(l.drop);
+				// the song's own chorus: its sky takes over and its weather falls for the whole line
+				if (ch && profile != null) {
+					float dur = f.line(slot).durationMs() / 1000f;
+					if (profile.sky() != null && sceneOn) SceneFx.trigger(profile.sky(), dur + 2f);
+					if (profile.weather() != null) weather.put(profile.weather(), clock + dur + 1f);
+				}
 				else CinematicShots.end();
 				if (l.drop) {
 					l.ring = clock;
@@ -508,6 +517,11 @@ public final class EditStyle implements LyricStyle {
 	}
 
 	private int styleColor() {
+		if (profile != null && profile.color() >= 0) return profile.color();
+		return baseStyleColor();
+	}
+
+	private int baseStyleColor() {
 		return switch (songStyle) {
 			case DARK -> 0xFF2B3A;
 			case SAD -> 0x8FB6FF;
@@ -520,15 +534,17 @@ public final class EditStyle implements LyricStyle {
 
 	/** What the slide calls the song's look. */
 	private String lookName() {
+		if (profile != null && profile.look() != null) return profile.look();
 		if (songStyle == null) return "CINEMATIC";
-		return switch (songStyle) {
-			case HYPE -> "HYPE EDIT";
-			case DARK -> "VILLAIN ARC";
-			case SAD -> "SAD HOURS";
-			case LOVE -> "LOVE STORY";
-			case POP -> "MAIN CHARACTER";
-			case RETRO -> "VHS TAPE";
+		String[] names = switch (songStyle) {
+			case HYPE -> new String[]{"HYPE EDIT", "FINAL BOSS", "NO MERCY", "MAIN EVENT", "GOD MODE"};
+			case DARK -> new String[]{"VILLAIN ARC", "DARK MODE", "NO MORE MR NICE", "AFTER MIDNIGHT", "VILLAIN ERA"};
+			case SAD -> new String[]{"SAD HOURS", "3AM THOUGHTS", "MISSING YOU", "RAINY DAYS", "CORE MEMORY"};
+			case LOVE -> new String[]{"LOVE STORY", "HOPELESS ROMANTIC", "SOFT HOURS", "YOU AND ME", "BUTTERFLIES"};
+			case POP -> new String[]{"MAIN CHARACTER", "IT GIRL ERA", "SUMMER CORE", "POP STAR", "PLAY IT LOUD"};
+			case RETRO -> new String[]{"VHS TAPE", "THROWBACK", "RETRO CORE", "OLD SCHOOL", "ON REPEAT"};
 		};
+		return names[Math.floorMod(songKey.hashCode(), names.length)];
 	}
 
 	/** End of the song: a little credits card, like the edits finish on. */
@@ -821,6 +837,14 @@ public final class EditStyle implements LyricStyle {
 
 	/** Font for a line: by the song's style; for other songs only the title gets one. */
 	private WordArt.Face faceFor(int index) {
+		if (profile != null && profile.font() != null) {
+			if (profile.font().equals("PIXEL")) return index == -1 ? WordArt.Face.SERIF_ITALIC : null;
+			try {
+				return WordArt.Face.valueOf(profile.font());
+			} catch (IllegalArgumentException ignored) {
+				// unknown font name: fall back to the style's
+			}
+		}
 		if (songStyle == null) return index == -1 ? WordArt.Face.SERIF_ITALIC : null;
 		return switch (songStyle) {
 			case HYPE -> WordArt.Face.IMPACT;

@@ -43,6 +43,12 @@ public final class LyricraftClientGameTest implements FabricClientGameTest {
 			check(edit("Changes", "2Pac") == null, "a song with the same title by someone else doesn't match");
 			check(edit("Glass Harbor", "The Late Signals") == null, "songs that aren't on the list get no edit effects");
 			check(S != null, "styles exist");
+			var night = dev.lyricraft.hud.style.EditSongs.profile("Nightcall", "Kavinsky");
+			check(night != null && "NIGHTCALL".equals(night.look()) && night.sky() != null && "MONO".equals(night.font()),
+					"a song gets its own look: slide name, sky and font");
+			check(edit("Legends Never Die", "League of Legends, Against The Current") == dev.lyricraft.hud.style.EditSongs.Style.HYPE,
+					"the artist can be further down the list on Spotify");
+			check(dev.lyricraft.hud.style.EditSongs.size() > 380, "the bigger list loads (" + dev.lyricraft.hud.style.EditSongs.size() + ")");
 		}
 		try (TestSingleplayerContext world = ctx.worldBuilder().create()) {
 			world.getConnection().waitForChunksRender();

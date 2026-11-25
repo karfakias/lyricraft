@@ -125,6 +125,20 @@ public final class EditShots implements FabricClientGameTest {
 				ctx.takeScreenshot("edit-scene-" + word);
 			}
 
+			// a song with its own look: Nightcall (typewriter font, night sky on the chorus) at midday
+			String[] nc = {"Nightcall", "Kavinsky"};
+			CoverArt.showDemo(track(nc, 0).trackKey(), GalleryShots.cover());
+			look(ctx, 185, -6);
+			ctx.runOnClient(mc -> mod.showDemo(track(nc, 3000), lyrics));
+			ctx.waitTicks(30);
+			ctx.takeScreenshot("edit-song-nightcall-slide");
+			int ch = 0;
+			while (!lyrics.lines.get(ch).text().startsWith("Hold on")) ch++;
+			int chl = ch;
+			ctx.runOnClient(mc -> mod.showDemo(track(nc, lyrics.lines.get(chl).startMs() - 60), lyrics));
+			ctx.waitTicks(60);
+			ctx.takeScreenshot("edit-song-nightcall-chorus");
+
 			ctx.runOnClient(mc -> {
 				mod.showDemo(null, null);
 				CoverArt.showDemo(null, null);
