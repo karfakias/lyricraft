@@ -163,9 +163,11 @@ public final class LyricraftScreen extends Screen implements LyricraftUi {
 			i++;
 		}
 		y += ((i + 1) / 2) * 22 + 4;
-		toggle(cx0, y, cw, "Edit effects on popular songs", () -> cfg().editEffects, v -> cfg().editEffects = v,
-				"In Echoes, " + dev.lyricraft.hud.style.EditSongs.size() + " popular songs get TikTok-edit style effects: "
-						+ "a title card, flashes, shake and particles that hit on the chorus.");
+		toggle(cx0, y, cw, "Edit: camera moves", () -> cfg().editCamera, v -> cfg().editCamera = v,
+				"In the Edit style, the camera zoom-punches and shakes a little on the beat. Turn it off if it makes you dizzy.");
+		y += 22;
+		toggle(cx0, y, cw, "Edit: popular songs hit harder", () -> cfg().editEffects, v -> cfg().editEffects = v,
+				"In the Edit style, " + dev.lyricraft.hud.style.EditSongs.size() + " popular songs get stronger hits and particles that fit them: hearts, rain, sparks, soul flames, notes.");
 		info = "";
 		return y + 22;
 	}
@@ -706,6 +708,7 @@ public final class LyricraftScreen extends Screen implements LyricraftUi {
 			case SKY -> "Giant lyrics written across the sky. Switches to Classic in caves and buildings.";
 			case ORBIT -> "Words spin in a ring around you and pop as they're sung.";
 			case ECHOES -> "Every line appears where you look and stays there in the world, leaving a trail of lyrics. Lines never stack on top of each other.";
+			case EDIT -> "Like a video edit: every line is stamped onto whatever you look at, the words slam onto the wall or ground one by one and kick up its dust, and the camera punches in on the beat. Trees and mobs can pass in front of the words.";
 			case POP -> "Words appear one by one with a bouncy pop. Can be dragged.";
 			case NEON -> "Flickering neon-sign lyrics. Can be dragged.";
 			case WAVE -> "Letters ride a wave that moves with the song. Can be dragged.";

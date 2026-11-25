@@ -23,7 +23,7 @@ Switch with **K**.
 
 - **Classic** (the default): a scrolling lyric sheet above the hotbar. The current line fills in as it's sung.
 - **Echoes** (our favourite, give it a try): each new line appears where you're looking and stays there in the world. Walk around during a song and you leave a trail of lyrics behind you.
-  Popular songs (about 290 of them, from what people actually edit to on TikTok and Reels) get edit effects in Echoes: a title card, and flashes, shake, speed lines, letterbox bars and particles that hit on the chorus, styled to fit the song. You can switch that off in the Style tab. The list is in `src/main/resources/assets/lyricraft/edit_songs.txt` if you want to add songs.
+- **Edit** makes it feel like a video edit, in the world itself. Every line gets stamped onto whatever you're looking at (a wall, the ground, a tree, or the sky), and the words slam onto the surface one by one as they're sung, kicking up dust from that block. It's real 3D text, so trees, blocks and mobs in front of it hide it. The camera zoom-punches and shakes a little on the beat (you can turn that off), and the first chorus is the big drop with a shockwave across the surface. About 290 popular songs, picked from what people actually edit to on TikTok and Reels, hit harder and get their own particles: hearts, rain, sparks, soul flames, notes. The list is in `src/main/resources/assets/lyricraft/edit_songs.txt` if you want to add songs.
 - **Sky Writing**: huge lyrics in the sky that drift towards wherever you're looking. In caves, buildings, the Nether and the End it falls back to Classic so you can still read them.
 - **Orbit**: the words circle around you and pop as they're sung.
 - **Pop**: the words appear one at a time.

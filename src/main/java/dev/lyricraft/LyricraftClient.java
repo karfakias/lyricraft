@@ -79,6 +79,9 @@ public final class LyricraftClient implements ClientModInitializer {
 
 		HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT,
 				Identifier.fromNamespaceAndPath(MOD_ID, "lyrics"), new LyricsHud(this));
+		// the Edit style draws its lyrics in the world itself
+		net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents.COLLECT_SUBMITS
+				.register(dev.lyricraft.hud.style.EditStyle::renderWorld);
 
 		LOG.info("Lyricraft {} ready - play something on Spotify!", VERSION);
 	}
@@ -178,6 +181,7 @@ public final class LyricraftClient implements ClientModInitializer {
 			case SKY -> "Sky Writing";
 			case ORBIT -> "Orbit";
 			case ECHOES -> "Echoes";
+			case EDIT -> "Edit";
 			case POP -> "Pop";
 			case NEON -> "Neon";
 			case WAVE -> "Wave";

@@ -83,6 +83,7 @@ public final class LyricsHud implements HudElement {
 		styles.put(Config.Style.SKY, new SkyStyle());
 		styles.put(Config.Style.ORBIT, new OrbitStyle());
 		styles.put(Config.Style.ECHOES, new EchoesStyle());
+		styles.put(Config.Style.EDIT, new dev.lyricraft.hud.style.EditStyle());
 		styles.put(Config.Style.POP, new PopStyle());
 		styles.put(Config.Style.NEON, new NeonStyle());
 		styles.put(Config.Style.WAVE, new WaveStyle());

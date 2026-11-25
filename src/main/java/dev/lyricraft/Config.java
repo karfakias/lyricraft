@@ -16,7 +16,7 @@ public final class Config {
 	public enum Position { ABOVE_HOTBAR, TOP_CENTER, LEFT_SIDE, RIGHT_SIDE, CUSTOM }
 
 	/** How the lyrics are shown. */
-	public enum Style { CLASSIC, ECHOES, SKY, ORBIT, POP, NEON, WAVE }
+	public enum Style { CLASSIC, ECHOES, EDIT, SKY, ORBIT, POP, NEON, WAVE }
 
 	/** Screen + world effects that react to the song. */
 	public enum Vibe { OFF, SUBTLE, FULL }
@@ -79,8 +79,10 @@ public final class Config {
 	public boolean shareEchoes = true;
 	/** Show other players' Echoes panels where they placed them. */
 	public boolean showOthersEchoes = true;
-	/** TikTok-edit style effects in Echoes for popular songs. */
+	/** Edit style: popular songs hit harder and get their own particles. */
 	public boolean editEffects = true;
+	/** Edit style: zoom punches and camera shake on the hits. */
+	public boolean editCamera = true;
 	/** Address of the online service (your own Cloudflare Worker, see server/README.md). */
 	public String onlineServer = "https://lyricraft.lyricraft-server.workers.dev";
 	/** Keep the playback clock locked to Spotify by measuring and correcting drift. */
