@@ -9,7 +9,9 @@
 		"CameraShakeMixin",
 		"EntityRendererMixin",
 		"HideHandMixin",
-		"PlayerTabOverlayMixin"
+		"PlayerTabOverlayMixin",
+		"SceneRainMixin",
+		"SkySceneMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
