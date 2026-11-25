@@ -4,9 +4,11 @@
 	"package": "dev.lyricraft.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"client": [
+		"CameraAngleMixin",
 		"CameraFovMixin",
 		"CameraShakeMixin",
 		"EntityRendererMixin",
+		"HideHandMixin",
 		"PlayerTabOverlayMixin"
 	],
 	"injectors": {
