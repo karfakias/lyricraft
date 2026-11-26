@@ -9,6 +9,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleOptions;
@@ -411,6 +412,31 @@ public final class EditStyle implements LyricStyle {
 		float scale = (float) Math.max(0.02, dist * 0.022) * (ch ? 1.2f : 1f) * (drop ? 1.15f : 1f);
 		float maxW = (float) Math.max(2.5, dist * (surface ? 1.05 : 0.7));
 		scale = Math.min(scale, maxW / width);
+		// keep the letters out of the ground: low on a wall, a step or a slope on the floor, a hill in
+		// front of a line in the air... walls and air: nudge the line up (down under a ceiling) until
+		// it's clear. Floor: slide it back towards you first so it stays flat on the ground, then make
+		// it a bit smaller, and only then lift it (a block at most, and never up to your eyes).
+		Vec3 lift = surface && hit.getDirection() == Direction.DOWN ? new Vec3(0, -0.25, 0) : new Vec3(0, 0.25, 0);
+		boolean floor = surface && hit.getDirection() == Direction.UP;
+		Vec3 back = new Vec3(-up.x * 0.25, 0, -up.z * 0.25);
+		double lifted = 0, slid = 0;
+		double maxLift = floor ? Math.min(1.0, cam.y - 0.8 - anchor.y) : height * scale + 1.5;
+		int shrunk = 0;
+		for (int tries = 0; tries < 30 && buried(mc, anchor, right, up, normal, width, height, scale); tries++) {
+			Vec3 slide = anchor.add(back);
+			if (floor && slid < 1.5 && hasFloor(mc, slide)) {
+				anchor = slide;
+				slid += 0.25;
+			} else if (floor && shrunk < 3) {
+				scale *= 0.88f;
+				shrunk++;
+			} else if (lifted + 0.25 <= maxLift) {
+				anchor = anchor.add(lift);
+				lifted += 0.25;
+			} else {
+				scale *= 0.85f;
+			}
+		}
 		Line line = new Line(index, text, anchor, right, up, normal, surface, block, scale, words, wx, wy, ww, width, height, ch, drop, clock);
 		line.art = art;
 		line.kinds = new WorldKeywords.Kind[words.length];
@@ -429,6 +455,41 @@ public final class EditStyle implements LyricStyle {
 			}
 		}
 		return line;
+	}
+
+	/** Solid ground right under this point (so a line slid along the floor stays on it). */
+	private static boolean hasFloor(Minecraft mc, Vec3 at) {
+		BlockPos below = BlockPos.containing(at.x, at.y - 0.1, at.z);
+		return !mc.level.getBlockState(below).getCollisionShape(mc.level, below).isEmpty()
+				&& mc.level.getBlockState(below.above()).getCollisionShape(mc.level, below.above()).isEmpty();
+	}
+
+	/**
+	 * True if any part of a line placed like this would be inside a solid block: samples the text's
+	 * area (a bit bigger, for the slam and the taller real-font words) through its thickness.
+	 */
+	private static boolean buried(Minecraft mc, Vec3 anchor, Vector3f right, Vector3f up, Vector3f normal,
+	                              float width, float height, float scale) {
+		double hw = (width / 2f + 2f) * scale * 1.1, hh = (height / 2f + 2.5f) * scale * 1.1;
+		BlockPos.MutableBlockPos bp = new BlockPos.MutableBlockPos();
+		for (int iu = -4; iu <= 4; iu++) {
+			for (int iv = -2; iv <= 2; iv++) {
+				for (int id = 0; id < 2; id++) {
+					double u = hw * iu / 4, v = hh * iv / 2, d = id == 0 ? 0.08 : DEPTH * scale;
+					double x = anchor.x + right.x * u + up.x * v + normal.x * d;
+					double y = anchor.y + right.y * u + up.y * v + normal.y * d;
+					double z = anchor.z + right.z * u + up.z * v + normal.z * d;
+					bp.set(Math.floor(x), Math.floor(y), Math.floor(z));
+					BlockState st = mc.level.getBlockState(bp);
+					if (st.isAir()) continue;
+					var shape = st.getCollisionShape(mc.level, bp);
+					if (shape.isEmpty()) continue; // grass, flowers, torches... words can go through those
+					double lx = x - bp.getX(), ly = y - bp.getY(), lz = z - bp.getZ();
+					for (var box : shape.toAabbs()) if (box.contains(lx, ly, lz)) return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	/** A word hits: dust off the block, the song's particles, and a little camera kick on the chorus. */

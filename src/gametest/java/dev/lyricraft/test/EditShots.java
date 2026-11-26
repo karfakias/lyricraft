@@ -102,6 +102,22 @@ public final class EditShots implements FabricClientGameTest {
 			ctx.waitTicks(30);
 			ctx.takeScreenshot("edit-angle-later");
 
+			// letters must never end up in the ground: low on the wall right above the floor...
+			look(ctx, 180, 6);
+			ctx.runOnClient(mc -> mod.showDemo(track(hype, lyrics.lines.get(4).startMs() - 60), lyrics));
+			ctx.waitTicks(50);
+			ctx.takeScreenshot("edit-wall-low");
+			// ...and on uneven ground (a step and a block in the way)
+			server.runCommand(String.format("fill %d %d %d %d %d %d stone", x - 4, y, z - 4, x + 4, y, z - 3));
+			server.runCommand(String.format("setblock %d %d %d stone", x + 1, y + 1, z - 3));
+			ctx.waitTicks(5);
+			world.getConnection().waitForChunksRender();
+			look(ctx, 180, 40);
+			ctx.runOnClient(mc -> mod.showDemo(track(hype, lyrics.lines.get(5).startMs() - 60), lyrics));
+			ctx.waitTicks(50);
+			ctx.takeScreenshot("edit-ground-step");
+			server.runCommand(String.format("fill %d %d %d %d %d %d air", x - 4, y, z - 4, x + 4, y + 1, z - 3));
+
 			// 2) a love song, looking at the ground
 			String[] love = {"Die With A Smile", "Lady Gaga, Bruno Mars"};
 			CoverArt.showDemo(track(love, 0).trackKey(), GalleryShots.cover());
