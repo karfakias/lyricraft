@@ -242,6 +242,7 @@ public final class EditStyle implements LyricStyle {
 
 		// words land as they're sung
 		int active = f.active();
+		List<Line> flown = new ArrayList<>(); // added after the loop (adding while going through the list crashed)
 		for (Line l : lines) {
 			if (l.index < 0 || l.diedAt >= 0) continue;
 			Lyrics.Line line = f.line(l.index);
@@ -258,7 +259,7 @@ public final class EditStyle implements LyricStyle {
 						w.parent = l;
 						w.landedAt[0] = clock;
 						l.landedAt[i] = -2f; // drawn over there instead
-						lines.add(w);
+						flown.add(w);
 						land(mc, w, 0);
 						EditCamera.hit(0.45f, 0.3f);
 						continue;
@@ -268,6 +269,7 @@ public final class EditStyle implements LyricStyle {
 				land(mc, l, i);
 			}
 		}
+		lines.addAll(flown);
 
 		// words that flew off go when their line goes; going lines crumble into dust in the text's colour
 		for (Line l : lines) {
