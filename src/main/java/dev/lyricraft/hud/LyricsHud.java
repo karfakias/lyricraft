@@ -146,7 +146,7 @@ public final class LyricsHud implements HudElement {
 		}
 
 		LyricStyle style = styles.getOrDefault(cfg.style, styles.get(Config.Style.CLASSIC));
-		if (track != null && cardVisibility > 0.01f && cfg.showNowPlaying
+		if (track != null && cardVisibility > 0.01f && cfg.showNowPlaying && (ownScreen || !dev.lyricraft.hud.style.CinematicShots.onAngle())
 				// in Lyricraft's menus the card always shows, so it can be styled and dragged
 				// (the Vinyl/Cassette/VHS overlays replace it, but only while they're actually showing)
 				&& (ownScreen || !want || style.showsNowPlayingCard() && !overlays.replacesNowPlaying(cfg))) {
