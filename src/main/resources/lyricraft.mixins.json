@@ -9,6 +9,7 @@
 		"CameraShakeMixin",
 		"EntityRendererMixin",
 		"HideHandMixin",
+		"IrisHandMixin",
 		"PlayerTabOverlayMixin",
 		"SceneRainMixin",
 		"SkySceneMixin"

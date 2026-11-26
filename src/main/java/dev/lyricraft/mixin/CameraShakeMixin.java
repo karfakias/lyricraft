@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /** Camera shake for the Edit style, added where the game adds its own hurt tilt (view only). */
 @Mixin(GameRenderer.class)
 public abstract class CameraShakeMixin {
-	@Inject(method = "bobHurt", at = @At("HEAD"))
+	@Inject(method = "bobHurt", at = @At("HEAD"), require = 0)
 	private void lyricraft$editShake(CameraRenderState camera, PoseStack pose, CallbackInfo ci) {
 		float roll = EditCamera.roll(), pitch = EditCamera.pitch(), yaw = EditCamera.yaw();
 		if (roll == 0f && pitch == 0f && yaw == 0f) return;

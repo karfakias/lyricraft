@@ -132,6 +132,20 @@ public final class SceneFx {
 		return (V) out;
 	}
 
+	/**
+	 * For shader packs, which draw their own sky: the scene as a soft grade over the screen
+	 * ({top argb, bottom argb}), or null when there's nothing to show.
+	 */
+	static int[] screenGrade() {
+		if (!live()) return null;
+		float k = strength * strength * (3 - 2 * strength);
+		return new int[]{Draw.argb(rgb(scene.sky), 0.24f * k), Draw.argb(rgb(scene.fog), 0.07f * k)};
+	}
+
+	private static int rgb(Vector3f c) {
+		return (Math.round(c.x * 255) << 16) | (Math.round(c.y * 255) << 8) | Math.round(c.z * 255);
+	}
+
 	private static float lerpAngle(float from, float to, float k) {
 		float d = ((to - from) % 360f + 540f) % 360f - 180f;
 		return from + d * k;

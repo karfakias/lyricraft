@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 /** Zoom punches for the Edit style: briefly narrows the field of view on the hits. */
 @Mixin(Camera.class)
 public abstract class CameraFovMixin {
-	@Inject(method = "calculateFov", at = @At("RETURN"), cancellable = true)
+	@Inject(method = "calculateFov", at = @At("RETURN"), cancellable = true, require = 0)
 	private void lyricraft$editZoom(float partialTick, CallbackInfoReturnable<Float> cir) {
 		float k = EditCamera.fovFactor();
 		if (k != 1f) cir.setReturnValue(cir.getReturnValue() * k);

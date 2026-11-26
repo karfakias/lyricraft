@@ -27,7 +27,7 @@ public abstract class CameraAngleMixin {
 	@Shadow
 	protected abstract void setPosition(Vec3 pos);
 
-	@Inject(method = "alignWithEntity", at = @At("TAIL"))
+	@Inject(method = "alignWithEntity", at = @At("TAIL"), require = 0)
 	private void lyricraft$cinematicAngle(float partialTick, CallbackInfo ci) {
 		double[] c = CinematicShots.camera(entity(), position());
 		if (c == null) return;

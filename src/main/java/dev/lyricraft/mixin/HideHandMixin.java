@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /** No first-person hand floating in the corner while the Edit style is on a cinematic angle. */
 @Mixin(GameRenderer.class)
 public abstract class HideHandMixin {
-	@Inject(method = "renderItemInHand", at = @At("HEAD"), cancellable = true)
+	@Inject(method = "renderItemInHand", at = @At("HEAD"), cancellable = true, require = 0)
 	private void lyricraft$hideHandOnAngle(CallbackInfo ci) {
 		if (CinematicShots.onAngle()) ci.cancel();
 	}

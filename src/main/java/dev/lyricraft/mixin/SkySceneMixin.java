@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(EnvironmentAttributeProbe.class)
 public abstract class SkySceneMixin {
 	@SuppressWarnings({"rawtypes", "unchecked"})
-	@Inject(method = "getValue", at = @At("RETURN"), cancellable = true)
+	@Inject(method = "getValue", at = @At("RETURN"), cancellable = true, require = 0)
 	private void lyricraft$scene(EnvironmentAttribute attribute, float partialTick, CallbackInfoReturnable cir) {
 		Object v = cir.getReturnValue();
 		Object out = SceneFx.apply(attribute, v);

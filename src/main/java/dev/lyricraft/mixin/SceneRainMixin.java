@@ -14,14 +14,14 @@ public abstract class SceneRainMixin {
 	@Shadow
 	public abstract boolean isClientSide();
 
-	@Inject(method = "getRainLevel", at = @At("RETURN"), cancellable = true)
+	@Inject(method = "getRainLevel", at = @At("RETURN"), cancellable = true, require = 0)
 	private void lyricraft$sceneRain(float partialTick, CallbackInfoReturnable<Float> cir) {
 		if (!isClientSide()) return;
 		float r = SceneFx.rain();
 		if (r > cir.getReturnValue()) cir.setReturnValue(r);
 	}
 
-	@Inject(method = "getThunderLevel", at = @At("RETURN"), cancellable = true)
+	@Inject(method = "getThunderLevel", at = @At("RETURN"), cancellable = true, require = 0)
 	private void lyricraft$sceneThunder(float partialTick, CallbackInfoReturnable<Float> cir) {
 		if (!isClientSide()) return;
 		float t = SceneFx.thunder();

@@ -302,6 +302,10 @@ public final class EditStyle implements LyricStyle {
 		for (var w : weather.keySet()) WorldKeywords.ambient(mc, w, dt, rng);
 		bolts.removeIf(b -> clock - b[3] > 0.6f);
 
+		// shader packs draw their own sky, so there the scene goes over the screen instead
+		int[] grade = Compat.shaders() ? SceneFx.screenGrade() : null;
+		if (grade != null) f.g().fillGradient(0, 0, f.width(), f.height(), grade[0], grade[1]);
+
 		flash = Draw.approach(flash, 0f, dt * 3.5f);
 		if (flash < 0.02f) flashColor = 0xFFFFFF;
 		if (flash > 0.01f) f.g().fill(0, 0, f.width(), f.height(), Draw.argb(flashColor, 0.28f * flash * flash * vis));
