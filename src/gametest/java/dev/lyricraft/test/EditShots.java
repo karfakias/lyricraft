@@ -14,6 +14,9 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
  * Screenshots of the Edit style. Only runs with LYRICRAFT_EDITS=1.
  * Builds a wall with a log pillar in front of it, then plays the made-up demo lyrics under the
  * names of songs on the popular list (no real lyrics anywhere).
+ *
+ * <p>With Iris added to the run and LYRICRAFT_SHADERPACK pointing at a shader pack zip, the same
+ * shots are taken with that pack on, to check the Edit style with shaders.
  */
 public final class EditShots implements FabricClientGameTest {
 
@@ -41,6 +44,13 @@ public final class EditShots implements FabricClientGameTest {
 			server.runCommand(String.format("tp @a %d.5 %d %d.5 180 0", x, y, z));
 			ctx.waitTicks(20);
 			world.getConnection().waitForChunksRender();
+
+			String pack = System.getenv("LYRICRAFT_SHADERPACK");
+			if (pack != null && !pack.isBlank()) {
+				ctx.runOnClient(mc -> shaderPack(java.nio.file.Path.of(pack)));
+				ctx.waitTicks(40);
+				world.getConnection().waitForChunksRender();
+			}
 
 			ctx.runOnClient(mc -> {
 				mc.options.guiScale().set(3);
@@ -143,6 +153,24 @@ public final class EditShots implements FabricClientGameTest {
 				mod.showDemo(null, null);
 				CoverArt.showDemo(null, null);
 			});
+		}
+	}
+
+	/** Turns on a shader pack through Iris (reflection, so the tests don't need Iris to build). */
+	private static void shaderPack(java.nio.file.Path zip) {
+		try {
+			Class<?> iris = Class.forName("net.irisshaders.iris.Iris");
+			java.nio.file.Path dir = (java.nio.file.Path) iris.getMethod("getShaderpacksDirectory").invoke(null);
+			java.nio.file.Files.createDirectories(dir);
+			java.nio.file.Files.copy(zip, dir.resolve(zip.getFileName()), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+			Object config = iris.getMethod("getIrisConfig").invoke(null);
+			config.getClass().getMethod("setShaderPackName", String.class).invoke(config, zip.getFileName().toString());
+			config.getClass().getMethod("setShadersEnabled", boolean.class).invoke(config, true);
+			config.getClass().getMethod("save").invoke(config);
+			iris.getMethod("reload").invoke(null);
+			LyricraftClient.LOG.info("Edit shots: shader pack {} on", zip.getFileName());
+		} catch (Exception e) {
+			throw new AssertionError("couldn't turn on the shader pack", e);
 		}
 	}
 

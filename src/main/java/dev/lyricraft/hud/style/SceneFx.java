@@ -128,7 +128,8 @@ public final class SceneFx {
 		else if (attr == EnvironmentAttributes.SUNRISE_SUNSET_COLOR && value instanceof Vector4fc c) out = new Vector4f(c).lerp(s.glow, k);
 		else if (attr == EnvironmentAttributes.STAR_BRIGHTNESS && value instanceof Float f) out = f + (Math.max(f, s.stars) - f) * k;
 		else if ((attr == EnvironmentAttributes.SUN_ANGLE || attr == EnvironmentAttributes.MOON_ANGLE || attr == EnvironmentAttributes.STAR_ANGLE)
-				&& value instanceof Float f && !Float.isNaN(s.sun)) out = lerpAngle(f, s.sun, k);
+				&& value instanceof Float f && !Float.isNaN(s.sun) && !Compat.shaders()) out = lerpAngle(f, s.sun, k);
+		// (shader packs light the whole world from the sun, so moving it there would make "night" really dark)
 		return (V) out;
 	}
 
@@ -139,7 +140,9 @@ public final class SceneFx {
 	static int[] screenGrade() {
 		if (!live()) return null;
 		float k = strength * strength * (3 - 2 * strength);
-		return new int[]{Draw.argb(rgb(scene.sky), 0.24f * k), Draw.argb(rgb(scene.fog), 0.07f * k)};
+		// the dark looks need more of it to read as night / storm / red sky (still light enough to play)
+		boolean dark = scene == Scene.NIGHT || scene == Scene.STORM || scene == Scene.BLOOD;
+		return new int[]{Draw.argb(rgb(scene.sky), (dark ? 0.5f : 0.26f) * k), Draw.argb(rgb(scene.fog), (dark ? 0.14f : 0.07f) * k)};
 	}
 
 	private static int rgb(Vector3f c) {
