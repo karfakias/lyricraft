@@ -15,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class CameraShakeMixin {
 	@Inject(method = "bobHurt", at = @At("HEAD"), require = 0)
 	private void lyricraft$editShake(CameraRenderState camera, PoseStack pose, CallbackInfo ci) {
-		float roll = EditCamera.roll(), pitch = EditCamera.pitch(), yaw = EditCamera.yaw();
+		float roll = EditCamera.roll() + dev.lyricraft.hud.style.CinematicShots.roll(), pitch = EditCamera.pitch(), yaw = EditCamera.yaw();
 		if (roll == 0f && pitch == 0f && yaw == 0f) return;
 		pose.mulPose(new org.joml.Matrix4f().rotation(Axis.ZP.rotationDegrees(roll)));
 		pose.mulPose(new org.joml.Matrix4f().rotation(Axis.XP.rotationDegrees(pitch)));

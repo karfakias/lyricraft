@@ -220,14 +220,14 @@ public final class EditStyle implements LyricStyle {
 				}
 				lines.add(l);
 				float boost = songStyle != null ? 1f : 0.7f;
-				if (ch) CinematicShots.cut(l.drop);
+				// every line cuts to a new angle (the chorus then cuts again on each word)
+				CinematicShots.cut(l.drop);
 				// the song's own chorus: its sky takes over and its weather falls for the whole line
 				if (ch && profile != null) {
 					float dur = f.line(slot).durationMs() / 1000f;
 					if (profile.sky() != null && sceneOn) SceneFx.trigger(profile.sky(), dur + 2f);
 					if (profile.weather() != null) weather.put(profile.weather(), clock + dur + 1f);
 				}
-				else CinematicShots.end();
 				if (l.drop) {
 					l.ring = clock;
 					EditCamera.hit(1f * boost, 1f * boost);
@@ -270,6 +270,7 @@ public final class EditStyle implements LyricStyle {
 				}
 				l.landedAt[i] = clock;
 				land(mc, l, i);
+				if (l.chorus && i > 0) CinematicShots.quickCut(); // cut on the beat, word by word
 			}
 		}
 		lines.addAll(flown);

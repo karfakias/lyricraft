@@ -11,10 +11,12 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Cinematic camera angles for the Edit style: on the chorus the view cuts to a shot around you
- * (over the shoulder, from the side, low, wide, from above) and slowly orbits, like the angle
- * changes in an edit. Only while you're standing still: the moment you move or turn, it cuts
- * straight back to your normal view. It never changes where you're actually looking.
+ * Cinematic camera for the Edit style, like the shots in Minecraft lyric edits: every line cuts
+ * to a new angle around you, and on the chorus it cuts on every word. The shots never sit still:
+ * pushing in on your face, pulling back to show the place, craning up, a drone flying in from
+ * far away, a low hero shot, a tilted dutch angle... with a little handheld drift. Only while
+ * you're standing still: the moment you move or turn, it cuts straight back to your own view.
+ * It never changes where you're actually looking.
  *
  * <p>No angles while riding, gliding, swimming, falling, sleeping or zoomed in with a spyglass,
  * and in tight spots it picks the shot with the most room (or skips it): the camera keeps a bit
@@ -23,17 +25,34 @@ import net.minecraft.world.phys.Vec3;
 public final class CinematicShots {
 	private CinematicShots() {}
 
-	/** yaw offset from where you face, pitch (down is positive), distance, orbit speed (deg/s). */
-	private record Shot(float yaw, float pitch, float dist, float orbit) {}
+	/**
+	 * A shot: where it starts and where it drifts to over a few seconds.
+	 *
+	 * @param yaw     around you, from behind (0) to in front looking back at you (180)
+	 * @param pitch   looking down (positive) or up (negative), start and end
+	 * @param dist    how far back, start and end (push in / pull back)
+	 * @param orbit   degrees per second around you
+	 * @param roll    tilt (dutch angle)
+	 * @param punchy  good for the fast cuts on the chorus words
+	 */
+	private record Shot(String name, float yaw, float pitch, float pitchEnd, float dist, float distEnd, float orbit, float roll, boolean punchy) {}
 
 	private static final Shot[] SHOTS = {
-			new Shot(-28f, 14f, 4.2f, 7f),    // over the left shoulder
-			new Shot(30f, 10f, 4.6f, -7f),    // over the right shoulder
-			new Shot(-80f, 4f, 4.8f, 9f),     // from the side
-			new Shot(15f, 34f, 9f, 5f),       // wide, from above and behind
-			new Shot(-40f, -12f, 3.4f, 10f),  // low, looking up past you
-			new Shot(0f, 72f, 8f, 12f),       // straight down from above
+			new Shot("shoulder left", -28f, 14f, 10f, 4.4f, 3.4f, 7f, 0f, true),
+			new Shot("face", 180f, 6f, 3f, 3.4f, 2.3f, -5f, 0f, true),
+			new Shot("drone", 25f, 30f, 20f, 14f, 8f, 4f, 0f, false),
+			new Shot("side", -82f, 4f, 2f, 4.8f, 4.0f, 9f, 0f, true),
+			new Shot("hero low", 150f, -14f, -20f, 3.2f, 2.6f, 8f, 0f, true),
+			new Shot("reveal", 200f, 8f, 20f, 2.4f, 7.5f, -9f, 0f, false),
+			new Shot("shoulder right", 30f, 10f, 8f, 4.6f, 3.8f, -7f, 0f, true),
+			new Shot("dutch", -55f, 8f, 6f, 3.8f, 3.2f, 6f, 12f, true),
+			new Shot("crane", 20f, -6f, 38f, 5f, 7f, 5f, 0f, false),
+			new Shot("top", 0f, 72f, 82f, 8f, 11f, 12f, 0f, false),
 	};
+	/** How long a shot takes to drift from its start to its end. */
+	private static final float LIFE = 5f;
+	/** The fast word cuts on the chorus can't come quicker than this. */
+	private static final float MIN_QUICK = 0.42f;
 
 	private static Shot shot;
 	private static long startNanos, lastSeen;
@@ -73,31 +92,49 @@ public final class CinematicShots {
 		return p.onGround() || p.getAbilities().flying;
 	}
 
-	/** Cut to the next angle (if you've been standing still for a moment and there's room for it). */
+	/** A new line: cut to the next angle (big = the drop: the drone or the wide pull-back). */
 	static void cut(boolean big) {
+		if (big) pick(i -> SHOTS[i].name().equals("drone") || SHOTS[i].name().equals("reveal"));
+		else pick(i -> true);
+	}
+
+	/** A word on the chorus: a fast cut to a close, punchy angle (only once a shot is already up). */
+	static void quickCut() {
+		if (shot == null || !active() || (System.nanoTime() - startNanos) / 1e9f < MIN_QUICK) return;
+		pick(i -> SHOTS[i].punchy() && SHOTS[i] != shot);
+	}
+
+	private static void pick(java.util.function.IntPredicate ok) {
 		Minecraft mc = Minecraft.getInstance();
 		if (idle < 1.2f || mc.player == null || mc.level == null) return;
 		Vec3 eye = mc.player.getEyePosition();
-		Shot want = SHOTS[big ? 3 : next++ % SHOTS.length];
-		// in a cave or a small room the planned shot may not fit: take the one with the most room
-		Shot pick = null;
+		// go through the shots in turn (from where we left off), skipping ones that don't fit here
+		Shot pickShot = null, fallback = null;
 		double best = 0;
-		for (int i = 0; i < SHOTS.length; i++) {
-			Shot s = i == 0 ? want : SHOTS[(next + i) % SHOTS.length];
-			double r = room(mc.level, mc.player, eye, back(mc.player.getYRot() + s.yaw(), s.pitch()), s.dist());
-			if (s == want && r >= s.dist() * 0.8) {
-				pick = s;
+		for (int k = 0; k < SHOTS.length; k++) {
+			int i = (next + k) % SHOTS.length;
+			Shot s = SHOTS[i];
+			if (!ok.test(i) || s == shot) continue;
+			double want = Math.max(s.dist(), s.distEnd());
+			double r = room(mc.level, mc.player, eye, back(mc.player.getYRot() + s.yaw(), s.pitch()), want);
+			if (r >= want * 0.8) {
+				pickShot = s;
+				next = i + 1;
 				break;
 			}
-			if (r / s.dist() > best && r >= MIN_ROOM) {
-				best = r / s.dist();
-				pick = s;
+			if (r / want > best && r >= MIN_ROOM) {
+				best = r / want;
+				fallback = s;
 			}
 		}
-		if (pick == null) return; // nowhere to put the camera: stay in your own view
-		shot = pick;
-		dist = 0f;
-		startNanos = System.nanoTime();
+		if (pickShot == null) pickShot = fallback;
+		if (pickShot == null) return; // nowhere to put the camera: stay in your own view
+		boolean first = shot == null;
+		shot = pickShot;
+		if (first) dist = 0f; // whip out from your own view; between shots it's a straight cut
+		else dist = Math.min(shot.dist(), (float) room(mc.level, mc.player, eye, back(mc.player.getYRot() + shot.yaw(), shot.pitch()), shot.dist()));
+		startNanos = System.nanoTime() - (first ? 0L : 400_000_000L); // straight cuts start already eased in
+		EditCamera.hit(first ? 0.25f : 0.18f, 0f);
 	}
 
 	/** Unit vector from your eyes out to where the camera sits for this yaw/pitch. */
@@ -132,20 +169,34 @@ public final class CinematicShots {
 		return shot != null && System.nanoTime() - lastSeen < 250_000_000L;
 	}
 
+	/** Tilt of the current shot (the dutch angle), in degrees. */
+	public static float roll() {
+		Shot s = shot;
+		if (s == null || !onAngle() || s.roll() == 0f) return 0f;
+		float t = (System.nanoTime() - startNanos) / 1e9f;
+		return s.roll() * Draw.easeOutCubic(Math.clamp(t / 0.35f, 0f, 1f));
+	}
+
 	/** The camera for this frame: {x, y, z, yaw, pitch}, or null for the normal view. */
 	public static double[] camera(Entity entity, Vec3 eye) {
 		Minecraft mc = Minecraft.getInstance();
 		Shot s = shot;
 		if (s == null || entity != mc.player || !active() || mc.level == null) return null;
 		float t = (System.nanoTime() - startNanos) / 1e9f;
-		// ease in from your own view over a short whip, then drift around you
+		// ease in from your own view over a short whip, then drift: orbit, push in / pull back, crane
 		float in = Draw.easeOutCubic(Math.clamp(t / 0.35f, 0f, 1f));
-		float yaw = mc.player.getYRot() + (s.yaw() + s.orbit() * t) * in;
-		float pitch = mc.player.getXRot() + (s.pitch() - mc.player.getXRot()) * in;
+		float u = Math.clamp(t / LIFE, 0f, 1f);
+		u = u * u * (3 - 2 * u);
+		// a little handheld drift, like a real camera operator
+		float hy = 0.5f * (float) (Math.sin(t * 1.3) + 0.4 * Math.sin(t * 2.9));
+		float hp = 0.35f * (float) (Math.sin(t * 1.7 + 1.0) + 0.4 * Math.sin(t * 3.3));
+		float yaw = mc.player.getYRot() + (s.yaw() + s.orbit() * t + hy) * in;
+		float shotPitch = s.pitch() + (s.pitchEnd() - s.pitch()) * u + hp;
+		float pitch = mc.player.getXRot() + (shotPitch - mc.player.getXRot()) * in;
 		Vec3 dir = back(yaw, pitch);
-		// the orbit can swing into a wall: pull in right away, ease back out once there's room
-		float room = (float) room(mc.level, entity, eye, dir, s.dist());
-		float target = s.dist() * in;
+		float target = (s.dist() + (s.distEnd() - s.dist()) * u) * in;
+		// the move can swing into a wall: pull in right away, ease back out once there's room
+		float room = (float) room(mc.level, entity, eye, dir, Math.max(s.dist(), s.distEnd()));
 		dist = room < dist ? room : Draw.approach(dist, Math.min(target, room), 0.15f);
 		if (in >= 1f && dist < MIN_ROOM) {
 			shot = null; // boxed in: back to your own view
