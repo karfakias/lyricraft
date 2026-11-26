@@ -55,6 +55,8 @@ public final class CinematicShots {
 	private static final float MIN_QUICK = 0.42f;
 
 	private static Shot shot;
+	/** Calm setting: chorus only, no word cuts, no tilted or straight-down shots. */
+	private static boolean calm;
 	private static long startNanos, lastSeen;
 	private static float idle;
 	private static float lastYaw, lastPitch;
@@ -66,8 +68,10 @@ public final class CinematicShots {
 	private static final float MIN_ROOM = 1.6f;
 
 	/** Called every frame by the Edit style. Tracks whether you're standing still. */
-	static void tick(Minecraft mc, float dt, boolean enabled) {
+	static void tick(Minecraft mc, float dt, dev.lyricraft.Config.Cinematic mode, boolean visible) {
 		lastSeen = System.nanoTime();
+		calm = mode == dev.lyricraft.Config.Cinematic.CALM;
+		boolean enabled = visible && mode != dev.lyricraft.Config.Cinematic.OFF;
 		var p = mc.player;
 		if (!enabled || p == null || !mc.options.getCameraType().isFirstPerson() || mc.gui.screen() != null || !canFilm(p)) {
 			shot = null;
@@ -92,15 +96,23 @@ public final class CinematicShots {
 		return p.onGround() || p.getAbilities().flying;
 	}
 
-	/** A new line: cut to the next angle (big = the drop: the drone or the wide pull-back). */
-	static void cut(boolean big) {
+	/** A new line: cut to the next angle (big = the drop: the drone or the wide pull-back). Calm: chorus lines only. */
+	static void cut(boolean big, boolean chorus) {
+		if (calm && !chorus) {
+			shot = null;
+			return;
+		}
 		if (big) pick(i -> SHOTS[i].name().equals("drone") || SHOTS[i].name().equals("reveal"));
-		else pick(i -> true);
+		else pick(i -> !calm || gentle(SHOTS[i]));
+	}
+
+	private static boolean gentle(Shot s) {
+		return s.roll() == 0f && !s.name().equals("top");
 	}
 
 	/** A word on the chorus: a fast cut to a close, punchy angle (only once a shot is already up). */
 	static void quickCut() {
-		if (shot == null || !active() || (System.nanoTime() - startNanos) / 1e9f < MIN_QUICK) return;
+		if (calm || shot == null || !active() || (System.nanoTime() - startNanos) / 1e9f < MIN_QUICK) return;
 		pick(i -> SHOTS[i].punchy() && SHOTS[i] != shot);
 	}
 

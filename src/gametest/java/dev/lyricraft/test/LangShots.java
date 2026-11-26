@@ -64,7 +64,7 @@ public final class LangShots implements FabricClientGameTest {
 				cfg.online = false;
 				cfg.editEffects = true;
 				cfg.editCamera = false;
-				cfg.editAngles = false;
+				cfg.editCinematic = Config.Cinematic.OFF;
 			});
 
 			for (String[] l : LINES) {

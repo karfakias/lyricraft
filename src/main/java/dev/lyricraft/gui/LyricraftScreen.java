@@ -166,10 +166,20 @@ public final class LyricraftScreen extends Screen implements LyricraftUi {
 		toggle(cx0, y, cw, "Edit: camera moves", () -> cfg().editCamera, v -> cfg().editCamera = v,
 				"In the Edit style, the camera zoom-punches and shakes a little on the beat. Turn it off if it makes you dizzy.");
 		y += 22;
-		toggle(cx0, y, cw, "Edit: cinematic angles", () -> cfg().editAngles, v -> cfg().editAngles = v,
-				"In the Edit style, the view cuts to angles around you on the chorus (over the shoulder, side, wide, from above). Only while you stand still; move and it cuts straight back.");
+		Config.Cinematic[] cine = Config.Cinematic.values();
+		add(new Widgets.Choice(cx0, y, cw, "Edit: cinematic", () -> switch (cfg().cinematic()) {
+			case OFF -> "Off";
+			case CALM -> "Calm";
+			case FULL -> "Full";
+		}, () -> cfg().cinematic() == Config.Cinematic.OFF ? 0x8A8A96 : 0xFFFFFF, d -> {
+			cfg().editCinematic = cine[Math.floorMod(cfg().cinematic().ordinal() + d, cine.length)];
+			cfg().editAngles = cfg().editCinematic != Config.Cinematic.OFF;
+			cfg().save();
+		}, "In the Edit style, the view cuts to camera angles around you, with black bars and the words on screen. "
+				+ "Calm: only on the chorus, gentle shots. Full: a new angle every line and a cut on every chorus word. "
+				+ "Only while you stand still; move and it cuts straight back."));
 		y += 22;
-		toggle(cx0, y, cw, "Edit: the sky changes with the words", () -> cfg().editScenes, v -> cfg().editScenes = v,
+		toggle(cx0, y, cw, "Edit: sky follows the words", () -> cfg().editScenes, v -> cfg().editScenes = v,
 				"In the Edit style, words like night, sun, storm, rain or heaven change the sky for a few seconds: starry night, golden sunset, a storm... Only on your screen, and the world stays as bright as it was.");
 		y += 22;
 		toggle(cx0, y, cw, "Edit: popular songs hit harder", () -> cfg().editEffects, v -> cfg().editEffects = v,

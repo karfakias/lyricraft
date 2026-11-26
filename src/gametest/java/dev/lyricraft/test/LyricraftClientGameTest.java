@@ -28,6 +28,16 @@ public final class LyricraftClientGameTest implements FabricClientGameTest {
 		if ("1".equals(System.getenv("LYRICRAFT_GALLERY")) || "1".equals(System.getenv("LYRICRAFT_PERF"))
 				|| "1".equals(System.getenv("LYRICRAFT_EDITS")) || "1".equals(System.getenv("LYRICRAFT_LANGS"))) return; // gallery/benchmark run only
 
+		// ---------------------------------------------------------- cinematic setting carries over the old switch
+		{
+			Config fresh = new Config();
+			check(fresh.cinematic() == Config.Cinematic.FULL, "cinematic is Full by default");
+			fresh.editAngles = false;
+			check(fresh.cinematic() == Config.Cinematic.OFF, "angles switched off before stays off");
+			fresh.editCinematic = Config.Cinematic.CALM;
+			check(fresh.cinematic() == Config.Cinematic.CALM, "the cinematic choice wins once it's picked");
+		}
+
 		// ---------------------------------------------------------- popular songs list matches real Spotify titles
 		{
 			var S = dev.lyricraft.hud.style.EditSongs.Style.class;

@@ -137,6 +137,25 @@ public final class EditShots implements FabricClientGameTest {
 				ctx.takeScreenshot("edit-hitsync-" + c);
 			}
 
+			// Calm: no angle on a verse line, and on the chorus no cuts on every word
+			ctx.runOnClient(mc -> cfg.editCinematic = Config.Cinematic.CALM);
+			CoverArt.showDemo(track(hype, 0).trackKey(), GalleryShots.cover());
+			look(ctx, 180, -4);
+			ctx.waitTicks(30);
+			ctx.runOnClient(mc -> mod.showDemo(track(hype, lyrics.lines.get(2).startMs() - 60), lyrics));
+			ctx.waitTicks(30);
+			ctx.takeScreenshot("edit-calm-verse");
+			ctx.runOnClient(mc -> mod.showDemo(track(hype, lyrics.lines.get(popLine).startMs() - 60), lyrics));
+			ctx.waitTicks(40);
+			ctx.takeScreenshot("edit-calm-chorus");
+			ctx.runOnClient(mc -> cfg.editCinematic = Config.Cinematic.FULL);
+
+			// the Style tab with the Edit settings (do they all fit?)
+			ctx.setScreen(() -> new dev.lyricraft.gui.LyricraftScreen(mod, null));
+			ctx.waitTicks(10);
+			ctx.takeScreenshot("edit-menu-style");
+			ctx.setScreen(() -> null);
+
 			// 2) a love song, looking at the ground
 			String[] love = {"Die With A Smile", "Lady Gaga, Bruno Mars"};
 			CoverArt.showDemo(track(love, 0).trackKey(), GalleryShots.cover());

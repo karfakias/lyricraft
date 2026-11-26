@@ -223,7 +223,7 @@ public final class EditStyle implements LyricStyle {
 				lines.add(l);
 				float boost = songStyle != null ? 1f : 0.7f;
 				// every line cuts to a new angle (the chorus then cuts again on each word)
-				CinematicShots.cut(l.drop);
+				CinematicShots.cut(l.drop, ch);
 				// the song's own chorus: its sky takes over and its weather falls for the whole line
 				if (ch && profile != null) {
 					float dur = f.line(slot).durationMs() / 1000f;
@@ -300,7 +300,7 @@ public final class EditStyle implements LyricStyle {
 		EditCamera.drift(cur == null ? 0f : cur.progress(f.posMs()) * (songStyle == EditSongs.Style.SAD ? 0.05f : 0.035f));
 
 		EditCamera.tick(dt, f.cfg().editCamera && vis > 0.3f);
-		CinematicShots.tick(mc, dt, f.cfg().editAngles && vis > 0.3f);
+		CinematicShots.tick(mc, dt, f.cfg().cinematic(), vis > 0.3f);
 		sceneOn = f.cfg().editScenes;
 		SceneFx.tick(dt, sceneOn && vis > 0.3f);
 		if (f.active() < 0 && CinematicShots.active() && (next == null || next.startMs() - f.posMs() > 1500)) CinematicShots.end();
