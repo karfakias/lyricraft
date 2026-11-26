@@ -500,3 +500,6 @@ La Bachata | Manuel Turizo | LOVE | sky=GOLDEN
 TQG | KAROL G | HYPE | look=TQG, color=#4cc9f0
 Provenza | KAROL G | POP | look=PROVENZA, color=#80ffdb, sky=OCEAN
 LALA | Myke Towers | POP
+Let The World Burn | Chris Grey | DARK | look=LET THE WORLD BURN, color=#ff5a1f, sky=BLOOD, weather=FIRE
+Waiting For Love | Avicii | HYPE | look=WAITING FOR LOVE, color=#ffd27a, font=PIXEL, sky=GOLDEN
+Like That | Doja Cat | POP | look=LIKE THAT, color=#b9a6ff
