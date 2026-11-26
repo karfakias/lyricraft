@@ -101,6 +101,11 @@ public final class EditShots implements FabricClientGameTest {
 			ctx.takeScreenshot("edit-wall-chorus");
 			ctx.waitTicks(30);
 			ctx.takeScreenshot("edit-angle-later");
+			// the chorus keeps cutting on the words: a few frames of it
+			for (int c = 1; c <= 4; c++) {
+				ctx.waitTicks(9);
+				ctx.takeScreenshot("edit-cine-" + c);
+			}
 
 			// letters must never end up in the ground: low on the wall right above the floor...
 			look(ctx, 180, 6);
@@ -117,6 +122,20 @@ public final class EditShots implements FabricClientGameTest {
 			ctx.waitTicks(50);
 			ctx.takeScreenshot("edit-ground-step");
 			server.runCommand(String.format("fill %d %d %d %d %d %d air", x - 4, y, z - 4, x + 4, y + 1, z - 3));
+
+			// a pop song on the chorus: hitsync captions while the camera is on an angle
+			String[] pop = {"Dynamite", "BTS"};
+			CoverArt.showDemo(track(pop, 0).trackKey(), GalleryShots.cover());
+			look(ctx, 180, -4);
+			ctx.waitTicks(30);
+			int pc = 0;
+			while (!lyrics.lines.get(pc).text().startsWith("Hold on")) pc++;
+			int popLine = pc;
+			ctx.runOnClient(mc -> mod.showDemo(track(pop, lyrics.lines.get(popLine).startMs() - 60), lyrics));
+			for (int c = 1; c <= 3; c++) {
+				ctx.waitTicks(22);
+				ctx.takeScreenshot("edit-hitsync-" + c);
+			}
 
 			// 2) a love song, looking at the ground
 			String[] love = {"Die With A Smile", "Lady Gaga, Bruno Mars"};

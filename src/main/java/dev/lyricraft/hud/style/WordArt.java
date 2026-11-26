@@ -192,8 +192,13 @@ final class WordArt {
 
 	/** The word in this face (made once, then cached), or null if fonts can't be drawn. */
 	static Glyph get(Face face, String word) {
+		return get(face, word, false);
+	}
+
+	/** Same, but keeping the word's own capitals even in a face that's normally all caps. */
+	static Glyph get(Face face, String word, boolean keepCase) {
 		if (!available() || word.isBlank()) return null;
-		String text = shown(face, word);
+		String text = keepCase ? word : shown(face, word);
 		String key = face.name() + "|" + text;
 		Glyph g = CACHE.get(key);
 		if (g != null) return g;
