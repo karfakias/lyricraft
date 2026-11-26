@@ -2,12 +2,73 @@ package dev.lyricraft.hud;
 
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.resources.language.FormattedBidiReorder;
+import net.minecraft.network.chat.FormattedText;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /** Small drawing helpers shared by every style. */
 public final class Draw {
 	private Draw() {}
 
 	public enum Align { LEFT, CENTER, RIGHT }
+
+	private static final Map<String, String> VISUAL = new LinkedHashMap<>(64, 0.75f, true) {
+		@Override
+		protected boolean removeEldestEntry(Map.Entry<String, String> e) {
+			return size() > 256;
+		}
+	};
+
+	/**
+	 * Text the way it should look on screen. Minecraft only turns Arabic and Hebrew right-to-left
+	 * (and joins the Arabic letters) when the game itself is in one of those languages, so
+	 * lyrics in them came out backwards with loose letters. Text without those letters comes
+	 * back untouched, straight away.
+	 */
+	public static String visual(String text) {
+		if (text == null || !hasRightToLeft(text)) return text;
+		synchronized (VISUAL) {
+			String v = VISUAL.get(text);
+			if (v != null) return v;
+			StringBuilder b = new StringBuilder(text.length());
+			try {
+				FormattedBidiReorder.reorder(FormattedText.of(text), false).accept((i, style, cp) -> {
+					b.appendCodePoint(cp);
+					return true;
+				});
+				v = b.toString();
+			} catch (RuntimeException e) {
+				v = text; // never let this break the HUD
+			}
+			VISUAL.put(text, v);
+			return v;
+		}
+	}
+
+	/** True if the line reads right to left (Arabic, Hebrew...): its first strong letter decides. */
+	public static boolean rightToLeft(String text) {
+		if (text == null) return false;
+		for (int i = 0; i < text.length(); ) {
+			int cp = text.codePointAt(i);
+			i += Character.charCount(cp);
+			byte dir = Character.getDirectionality(cp);
+			if (dir == Character.DIRECTIONALITY_RIGHT_TO_LEFT || dir == Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC) return true;
+			if (dir == Character.DIRECTIONALITY_LEFT_TO_RIGHT) return false;
+		}
+		return false;
+	}
+
+	private static boolean hasRightToLeft(String text) {
+		for (int i = 0; i < text.length(); i++) {
+			char c = text.charAt(i);
+			if (c < 0x0590) continue; // everything before Hebrew is left-to-right
+			byte d = Character.getDirectionality(c);
+			if (d == Character.DIRECTIONALITY_RIGHT_TO_LEFT || d == Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC) return true;
+		}
+		return false;
+	}
 
 	public static int argb(int rgb, float alpha) {
 		int a = Math.clamp(Math.round(alpha * 255f), 0, 255);
@@ -88,7 +149,7 @@ public final class Draw {
 		g.pose().pushMatrix();
 		g.pose().translate(x, y);
 		g.pose().scale(scale, scale);
-		g.text(font, text, 0, 0, color, shadow);
+		g.text(font, visual(text), 0, 0, color, shadow);
 		g.pose().popMatrix();
 	}
 
@@ -103,7 +164,8 @@ public final class Draw {
 	}
 
 	/**
-	 * Karaoke line: dim base text, then the accent colour revealed left-to-right up to {@code progress}.
+	 * Karaoke line: dim base text, then the accent colour revealed left-to-right up to {@code progress}
+	 * (right-to-left for Arabic and Hebrew lines).
 	 *
 	 * @return the screen rectangle the line occupies {x0, y0, x1, y1}
 	 */
@@ -119,13 +181,16 @@ public final class Draw {
 		text(g, font, text, x, y, scale, argb(baseRgb, baseAlpha * alpha), true);
 
 		if (progress > 0f) {
-			int fillTo = Math.round(x + drawW * progress);
-			g.enableScissor(bx0 - 4, by0 - 4, fillTo, by1 + 4);
+			boolean rtl = rightToLeft(text);
+			int fillTo = Math.round(rtl ? x + drawW * (1f - progress) : x + drawW * progress);
+			if (rtl) g.enableScissor(fillTo, by0 - 4, bx1 + 4, by1 + 4);
+			else g.enableScissor(bx0 - 4, by0 - 4, fillTo, by1 + 4);
 			glowText(g, font, text, x, y, scale, accentRgb, alpha, glow);
 			g.disableScissor();
 			if (backdrop) {
 				int uy = by1 - 1;
-				g.fill(bx0 + padX, uy, fillTo, uy + 1, argb(accentRgb, 0.85f * alpha));
+				if (rtl) g.fill(fillTo, uy, bx1 - padX, uy + 1, argb(accentRgb, 0.85f * alpha));
+				else g.fill(bx0 + padX, uy, fillTo, uy + 1, argb(accentRgb, 0.85f * alpha));
 				if (progress < 1f) g.fill(fillTo - 1, uy - 1, fillTo + 1, uy + 2, argb(0xFFFFFF, 0.9f * alpha));
 			}
 		}

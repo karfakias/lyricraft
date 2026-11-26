@@ -362,6 +362,7 @@ public final class NowPlayingCard {
 	/** Text that scrolls back and forth when it's too long. */
 	private static void marquee(Ctx c, String text, int x, int y, int maxW, int color, boolean shadow) {
 		if (text == null) return;
+		text = Draw.visual(text);
 		Font font = c.font;
 		int w = font.width(text);
 		if (w <= maxW) {

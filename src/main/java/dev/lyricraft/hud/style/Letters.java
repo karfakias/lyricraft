@@ -1,5 +1,6 @@
 package dev.lyricraft.hud.style;
 
+import dev.lyricraft.hud.Draw;
 import net.minecraft.client.gui.Font;
 
 import java.util.ArrayList;
@@ -12,6 +13,7 @@ record Letters(List<Letter> letters, int totalWidth) {
 	record Letter(String ch, int x, int width, float at, boolean space) {}
 
 	static Letters of(Font font, String text) {
+		text = Draw.visual(text);
 		List<Letter> out = new ArrayList<>();
 		int nonSpace = Math.max(1, (int) text.codePoints().filter(c -> !Character.isWhitespace(c)).count());
 		int seen = 0, x = 0;
