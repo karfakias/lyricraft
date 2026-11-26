@@ -74,6 +74,18 @@ public final class PerfBench implements FabricClientGameTest {
 				c.style = Config.Style.ECHOES;
 				c.vibe = Config.Vibe.FULL;
 			}, true);
+			// the Edit style on a song from the popular list (hits harder, more particles)
+			title = "Believer";
+			artist = "Imagine Dragons";
+			CoverArt.showDemo(track(0).trackKey(), GalleryShots.cover());
+			run(ctx, mod, lyrics, report, "edit + popular song", c -> {
+				base.accept(c);
+				c.style = Config.Style.EDIT;
+				c.editEffects = true;
+			}, true);
+			title = GalleryShots.TITLE;
+			artist = GalleryShots.ARTIST;
+			CoverArt.showDemo(track(0).trackKey(), GalleryShots.cover());
 			run(ctx, mod, lyrics, report, "echoes + 12 friends", c -> {
 				base.accept(c);
 				c.style = Config.Style.ECHOES;
@@ -151,8 +163,10 @@ public final class PerfBench implements FabricClientGameTest {
 		log(line);
 	}
 
+	private static String title = GalleryShots.TITLE, artist = GalleryShots.ARTIST;
+
 	private static dev.lyricraft.media.MediaSnapshot track(long posMs) {
-		return new dev.lyricraft.media.MediaSnapshot("Spotify.exe", GalleryShots.TITLE, GalleryShots.ARTIST, "Harbor Lights",
+		return new dev.lyricraft.media.MediaSnapshot("Spotify.exe", title, artist, "Harbor Lights",
 				posMs, GalleryShots.DURATION, true, System.nanoTime());
 	}
 

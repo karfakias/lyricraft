@@ -79,6 +79,19 @@ public final class LyricraftClient implements ClientModInitializer {
 
 		HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT,
 				Identifier.fromNamespaceAndPath(MOD_ID, "lyrics"), new LyricsHud(this));
+		// no crosshair floating in the middle of a cinematic angle (Edit style)...
+		// and no hotbar, hearts or xp either: a clean frame, like a recorded edit (chat and titles stay)
+		for (Identifier id : new Identifier[]{VanillaHudElements.CROSSHAIR, VanillaHudElements.HOTBAR, VanillaHudElements.HEALTH_BAR,
+				VanillaHudElements.ARMOR_BAR, VanillaHudElements.FOOD_BAR, VanillaHudElements.AIR_BAR, VanillaHudElements.MOUNT_HEALTH,
+				VanillaHudElements.INFO_BAR, VanillaHudElements.EXPERIENCE_LEVEL, VanillaHudElements.INFO_BAR_FOREGROUND,
+				VanillaHudElements.HELD_ITEM_TOOLTIP, VanillaHudElements.MOB_EFFECTS}) {
+			HudElementRegistry.replaceElement(id, vanilla -> (g, delta) -> {
+				if (!dev.lyricraft.hud.style.CinematicShots.onAngle()) vanilla.extractRenderState(g, delta);
+			});
+		}
+		// the Edit style draws its lyrics in the world itself
+		net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents.COLLECT_SUBMITS
+				.register(dev.lyricraft.hud.style.EditStyle::renderWorld);
 
 		LOG.info("Lyricraft {} ready - play something on Spotify!", VERSION);
 	}
@@ -178,6 +191,7 @@ public final class LyricraftClient implements ClientModInitializer {
 			case SKY -> "Sky Writing";
 			case ORBIT -> "Orbit";
 			case ECHOES -> "Echoes";
+			case EDIT -> "Edit";
 			case POP -> "Pop";
 			case NEON -> "Neon";
 			case WAVE -> "Wave";

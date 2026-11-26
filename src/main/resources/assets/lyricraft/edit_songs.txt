@@ -1,0 +1,505 @@
+# Songs that get the full edit treatment in the Edit style.
+# One per line:  title | artist | style | extras (optional)
+#
+# Styles: HYPE (hard hits, slams), DARK (glitch, red), SAD (slow, blue), LOVE (soft, pink), POP (bounce, colour), RETRO (typewriter, VHS)
+# Extras, any of them, comma separated:
+#   look=NAME        what the opening slide calls it
+#   color=#rrggbb    the song's colour
+#   font=IMPACT | SERIF_BOLD | SERIF_ITALIC | SCRIPT | HEAVY | MONO | PIXEL
+#   sky=NIGHT | GOLDEN | STORM | RAIN | BLOOD | DREAM | OCEAN | WINTER     the sky on every chorus
+#   weather=SNOW | RAIN | FLOWER | NIGHT | TEARS                           falls through every chorus
+# Matching ignores case, accents, "(feat. ...)", "(Slowed)", " - Remastered" etc., and only needs the first artist.
+
+# --- seen a lot in TikTok / Reels edits (Nov 2026)
+expectations | Olivia Rodrigo & Chappell Roan | POP | look=MAIN CHARACTER, color=#ff6fb5
+the cure | Olivia Rodrigo | SAD | look=HEALING ERA, color=#b39ddb, sky=DREAM
+HONG KONG | The Weeknd | DARK | look=AFTER HOURS, color=#ff2d55, sky=NIGHT
+stop the wedding | ashe | SAD | look=SPEAK NOW, color=#e0e0ff, font=SCRIPT, weather=FLOWER
+Blood In Your Eyes | Tove Lo | DARK | look=VICE CITY, color=#ff3c8e, sky=BLOOD
+Beggin' | Måneskin | HYPE | look=ROCKSTAR, color=#ff3b30
+No Scrubs | TLC | RETRO | look=Y2K, color=#7cff6b
+Chasing Cars | Snow Patrol | SAD | look=STAY, color=#9ec8ff, sky=WINTER, weather=SNOW
+As It Was | Harry Styles | POP | look=AS IT WAS, color=#ff4d6d
+Earrings | Malcolm Todd | LOVE | look=SOFT LAUNCH, color=#ffd1a1
+Lover, You Should've Come Over | Jeff Buckley | SAD | look=GRACE, color=#c5cae9, sky=RAIN
+Last Christmas | Wham! | RETRO | look=WINTER '84, color=#ff3b3b, sky=WINTER, weather=SNOW
+Girls Just Want to Have Fun | Cyndi Lauper | RETRO | look=GIRLS NIGHT, color=#ff6ad5
+Rockabye | Clean Bandit | POP
+I'M A BLACKHOLE (STAR) | Odetari | HYPE | sky=NIGHT, color=#9b5cff
+Take Me in Your Arms | Lil Suzy | RETRO | look=FREESTYLE '95, color=#ff7ad9
+Si No Estás | Iñigo Quintero | SAD | look=SI NO ESTÁS, color=#ffb74d, font=SCRIPT, sky=GOLDEN
+
+# --- Minecraft edit classics with lyrics
+Revenge | CaptainSparklez | HYPE | look=CREEPER AW MAN, color=#3cff5a, font=PIXEL
+Fallen Kingdom | CaptainSparklez | DARK | look=FALLEN KINGDOM, color=#ffcc33, font=PIXEL, sky=STORM
+Take Back the Night | CaptainSparklez | DARK | look=TAKE BACK THE NIGHT, color=#7c4dff, font=PIXEL, sky=NIGHT
+Find the Pieces | CaptainSparklez | DARK | look=FIND THE PIECES, color=#ff9100, font=PIXEL
+Dragonhearted | CaptainSparklez | HYPE | look=DRAGONHEARTED, color=#d500f9, font=PIXEL, sky=NIGHT
+
+# --- the big edit staples
+Nightcall | Kavinsky | RETRO | look=NIGHTCALL, color=#ff3cac, font=MONO, sky=NIGHT
+A Real Hero | College | RETRO | look=REAL HERO, color=#ff5fa2, font=SCRIPT, sky=GOLDEN
+The Perfect Girl | Mareux | DARK | look=THE PERFECT GIRL, color=#ff2e63, sky=NIGHT
+After Dark | Mr.Kitty | DARK | look=AFTER DARK, color=#b026ff, sky=NIGHT
+Can You Feel My Heart | Bring Me The Horizon | DARK | look=FINAL FORM, color=#ff1f1f, sky=STORM
+Mary On A Cross | Ghost | DARK | look=MARY ON A CROSS, color=#ffd54f, font=SERIF_BOLD, sky=BLOOD
+Way Down We Go | KALEO | DARK | look=WAY DOWN, color=#c79b5b, sky=STORM
+Runaway | AURORA | SAD | look=RUNAWAY, color=#9fe7ff, font=SERIF_ITALIC, sky=OCEAN
+Lovers Rock | TV Girl | LOVE | look=LOVERS ROCK, color=#ff8fa3, font=SCRIPT, sky=GOLDEN
+Not Allowed | TV Girl | SAD | look=NOT ALLOWED, color=#a0c4ff
+Cigarettes out the Window | TV Girl | LOVE | look=SUMMER '06, color=#ffc6ff
+The Less I Know The Better | Tame Impala | RETRO | look=LESS I KNOW, color=#ff6a3d, sky=DREAM
+Let It Happen | Tame Impala | RETRO | look=LET IT HAPPEN, color=#7df9ff, sky=DREAM
+Dracula | Tame Impala | DARK | look=DRACULA, color=#ff2e3b, sky=BLOOD
+Here With Me | d4vd | LOVE | look=HERE WITH ME, color=#ffb3c6, sky=GOLDEN
+Romantic Homicide | d4vd | DARK | look=ROMANTIC HOMICIDE, color=#d90429, sky=RAIN
+Feel It | d4vd | LOVE | look=INVINCIBLE, color=#7bdff2
+Sailor Song | Gigi Perez | LOVE | look=SAILOR SONG, color=#8ecae6, font=SCRIPT, sky=OCEAN
+MIDDLE OF THE NIGHT | Elley Duhé | DARK | look=MIDDLE OF THE NIGHT, color=#ff3d68, sky=NIGHT
+Space Song | Beach House | SAD | look=SPACE SONG, color=#b8c0ff, font=SERIF_ITALIC, sky=NIGHT, weather=NIGHT
+Myth | Beach House | SAD | look=MYTH, color=#cdb4db, sky=DREAM
+Let Down | Radiohead | SAD | look=LET DOWN, color=#a8dadc, sky=RAIN
+Fake Plastic Trees | Radiohead | SAD | look=PLASTIC, color=#caffbf
+Ribs | Lorde | SAD | look=RIBS, color=#ffafcc, sky=NIGHT
+Liability | Lorde | SAD | look=LIABILITY, color=#e2ece9
+Duvet | bôa | SAD | look=LAIN, color=#a6e3e9, font=MONO, sky=STORM
+Cherry Wine | Hozier | SAD | look=CHERRY WINE, color=#e63946, font=SCRIPT
+Mystery of Love | Sufjan Stevens | SAD | look=CALL ME BY YOUR NAME, color=#ffd6a5, font=SERIF_ITALIC, sky=GOLDEN
+Fourth of July | Sufjan Stevens | SAD | look=FOURTH OF JULY, color=#bde0fe, sky=NIGHT, weather=NIGHT
+Somewhere Only We Know | Keane | SAD | look=ONLY WE KNOW, color=#cfe1b9, sky=GOLDEN
+Iris | Goo Goo Dolls | SAD | look=IRIS, color=#9bf6ff, sky=RAIN
+Kiss Me | Sixpence None the Richer | LOVE | look=KISS ME, color=#ffadad, weather=FLOWER
+Somebody Else | The 1975 | SAD | look=SOMEBODY ELSE, color=#ff99c8
+Robbers | The 1975 | DARK | look=ROBBERS, color=#bdb2ff, sky=NIGHT
+Electric Love | BØRNS | LOVE | look=ELECTRIC LOVE, color=#ff70a6, sky=DREAM
+Kerosene | Crystal Castles | DARK | look=KEROSENE, color=#00f5d4, font=MONO
+Jenny | Studio Killers | POP | look=JENNY, color=#ff3cac
+Paint It, Black | The Rolling Stones | DARK | look=PAINT IT BLACK, color=#e5e5e5, font=SERIF_BOLD, sky=STORM
+Toxicity | System Of A Down | DARK | look=TOXICITY, color=#ff0054, sky=BLOOD
+Chop Suey! | System Of A Down | DARK | look=CHOP SUEY, color=#ff4d00, sky=STORM
+Zombie | The Cranberries | DARK | look=ZOMBIE, color=#9ef01a, sky=STORM
+Heads Will Roll | Yeah Yeah Yeahs | DARK | look=OFF WITH HIS HEAD, color=#ff006e
+Dark Red | Steve Lacy | LOVE | look=DARK RED, color=#d00000
+Bad Habit | Steve Lacy | POP | look=BAD HABIT, color=#ffbe0b
+Pretty Girl | Clairo | LOVE | look=PRETTY GIRL, color=#ffcad4
+Sofia | Clairo | LOVE | look=SOFIA, color=#cdeac0
+Bags | Clairo | SAD | look=BAGS, color=#e9edc9
+Feel Good Inc. | Gorillaz | RETRO | look=FEEL GOOD INC, color=#ffe600, sky=DREAM
+On Melancholy Hill | Gorillaz | SAD | look=MELANCHOLY HILL, color=#9ad1d4, sky=OCEAN
+Clint Eastwood | Gorillaz | RETRO | look=CLINT EASTWOOD, color=#80ffdb
+Cigarette Daydreams | Cage The Elephant | SAD | look=DAYDREAMS, color=#f4a261, sky=GOLDEN
+Ain't No Rest For The Wicked | Cage The Elephant | RETRO | look=NO REST, color=#e76f51
+Hey There Delilah | Plain White T's | LOVE | look=DELILAH, color=#fefae0, font=SCRIPT, sky=NIGHT
+Take Me Out | Franz Ferdinand | HYPE | look=TAKE ME OUT, color=#ff006e
+Last Nite | The Strokes | RETRO | look=LAST NITE, color=#e9c46a
+Reptilia | The Strokes | HYPE | look=REPTILIA, color=#43aa8b
+Labour | Paris Paloma | DARK | look=THE LABOUR, color=#ff4d6d, font=SERIF_BOLD, sky=BLOOD
+Self Control | Laura Branigan | RETRO | look=SELF CONTROL, color=#ff0a54, sky=NIGHT
+Freed From Desire | Gala | POP | look=NA NA NA, color=#3a86ff
+Lady (Hear Me Tonight) | Modjo | RETRO | look=HEAR ME TONIGHT, color=#ffbe0b, sky=GOLDEN
+Better Off Alone | Alice Deejay | RETRO | look=BETTER OFF ALONE, color=#4cc9f0
+Mr. Sandman | The Chordettes | RETRO | look=MR. SANDMAN, color=#ffd6ff, font=SCRIPT, sky=DREAM
+Can't Help Falling in Love | Elvis Presley | LOVE | look=WISE MEN SAY, color=#ffe5ec, font=SCRIPT, sky=GOLDEN
+Fly Me To The Moon | Frank Sinatra | LOVE | look=FLY ME TO THE MOON, color=#fff3b0, font=SCRIPT, sky=NIGHT, weather=NIGHT
+Feeling Good | Michael Bublé | HYPE | look=FEELING GOOD, color=#ffd166, font=SERIF_BOLD, sky=GOLDEN
+Stand By Me | Ben E. King | RETRO | look=STAND BY ME, color=#f6bd60
+Ain't No Sunshine | Bill Withers | SAD | look=NO SUNSHINE, color=#cbc0d3, sky=RAIN
+Lovely Day | Bill Withers | POP | look=LOVELY DAY, color=#ffd60a, sky=GOLDEN
+What a Wonderful World | Louis Armstrong | LOVE | look=WONDERFUL WORLD, color=#caffbf, font=SCRIPT, sky=DREAM
+Sway | Michael Bublé | LOVE | look=SWAY, color=#ff8fab, font=SCRIPT
+Africa | Toto | RETRO | look=AFRICA, color=#f77f00, sky=GOLDEN, weather=RAIN
+Don't You (Forget About Me) | Simple Minds | RETRO | look=BREAKFAST CLUB, color=#ff4d6d
+Under Pressure | Queen | RETRO | look=UNDER PRESSURE, color=#4895ef
+Somebody to Love | Queen | RETRO | look=SOMEBODY TO LOVE, color=#ffd166
+Heroes | David Bowie | RETRO | look=HEROES, color=#4cc9f0, sky=NIGHT
+Starman | David Bowie | RETRO | look=STARMAN, color=#ffbe0b, sky=NIGHT, weather=NIGHT
+Space Oddity | David Bowie | SAD | look=MAJOR TOM, color=#90e0ef, sky=NIGHT, weather=NIGHT
+Hotel California | Eagles | RETRO | look=HOTEL CALIFORNIA, color=#e09f3e, sky=GOLDEN
+
+# --- rap / hype
+Not Like Us | Kendrick Lamar | HYPE | look=NOT LIKE US, color=#ff0000
+HUMBLE. | Kendrick Lamar | HYPE | look=SIT DOWN, color=#ffffff, font=IMPACT
+DNA. | Kendrick Lamar | HYPE | look=DNA, color=#ff1f1f
+Alright | Kendrick Lamar | HYPE | look=ALRIGHT, color=#ffd60a
+King Kunta | Kendrick Lamar | HYPE | look=KING KUNTA, color=#ffbe0b
+N95 | Kendrick Lamar | HYPE | look=N95, color=#e5e5e5
+squabble up | Kendrick Lamar | HYPE
+tv off | Kendrick Lamar | HYPE | look=TURN THE TV OFF, color=#ff006e
+Money Trees | Kendrick Lamar | DARK | look=MONEY TREES, color=#80ed99, sky=GOLDEN
+Swimming Pools (Drank) | Kendrick Lamar | DARK | sky=OCEAN, color=#48cae4
+luther | Kendrick Lamar & SZA | LOVE | look=LUTHER, color=#ff8fab, sky=DREAM
+SICKO MODE | Travis Scott | HYPE | look=SICKO MODE, color=#ffd000
+FE!N | Travis Scott | HYPE | look=FEIN, color=#ff2e2e, sky=BLOOD
+goosebumps | Travis Scott | DARK | look=GOOSEBUMPS, color=#c77dff, sky=NIGHT
+HIGHEST IN THE ROOM | Travis Scott | HYPE | look=HIGHEST IN THE ROOM, color=#ff9e00, sky=NIGHT
+BUTTERFLY EFFECT | Travis Scott | HYPE | look=BUTTERFLY EFFECT, color=#b5e48c
+Antidote | Travis Scott | HYPE
+STARGAZING | Travis Scott | HYPE | look=ASTROWORLD, color=#ff8800, sky=NIGHT
+CARNIVAL | ¥$ | HYPE | look=HEAD BY THE SCRIPTURES, color=#ff0000
+Stronger | Kanye West | HYPE | look=STRONGER, color=#c0fdff
+POWER | Kanye West | HYPE | look=21ST CENTURY, color=#ff006e
+Black Skinhead | Kanye West | HYPE | look=YEEZUS, color=#ff0000, font=IMPACT, sky=BLOOD
+Flashing Lights | Kanye West | DARK | look=FLASHING LIGHTS, color=#ffd60a, sky=NIGHT
+Heartless | Kanye West | SAD | look=808S, color=#a2d2ff
+I Wonder | Kanye West | SAD | look=GRADUATION, color=#ff70a6, sky=DREAM
+Runaway | Kanye West | SAD | look=RUNAWAY, color=#ff4d6d
+Mockingbird | Eminem | SAD | look=HAILIE, color=#cdb4db, sky=RAIN
+Lose Yourself | Eminem | HYPE | look=ONE SHOT, color=#ffffff, font=IMPACT
+'Till I Collapse | Eminem | HYPE | look=TILL I COLLAPSE, color=#ff3b30, font=IMPACT, sky=STORM
+Without Me | Eminem | HYPE
+Godzilla | Eminem | HYPE | look=GODZILLA, color=#80ff72
+Rap God | Eminem | HYPE | look=RAP GOD, color=#ffd60a
+Venom | Eminem | DARK | look=VENOM, color=#2b2d42, sky=STORM
+The Real Slim Shady | Eminem | HYPE | look=SLIM SHADY, color=#90e0ef
+MONTERO (Call Me By Your Name) | Lil Nas X | DARK | look=MONTERO, color=#ff006e, sky=BLOOD
+INDUSTRY BABY | Lil Nas X | HYPE
+Old Town Road | Lil Nas X | POP | look=YEEHAW, color=#e9c46a, sky=GOLDEN
+Rich Flex | Drake | HYPE
+God's Plan | Drake | POP
+NOKIA | Drake | HYPE | look=NOKIA, color=#64dfdf
+First Person Shooter | Drake | HYPE | look=BIG AS THE WHAT, color=#ff3b30
+One Dance | Drake | POP
+Passionfruit | Drake | LOVE | sky=GOLDEN
+Anxiety | Doechii | HYPE | look=ANXIETY, color=#ff99c8
+DENIAL IS A RIVER | Doechii | HYPE | look=ALLIGATOR BITES, color=#80ed99
+Lovin On Me | Jack Harlow | POP
+Gangsta's Paradise | Coolio | DARK | look=GANGSTA'S PARADISE, color=#ffd60a, font=SERIF_BOLD, sky=STORM
+In Da Club | 50 Cent | HYPE
+California Love | 2Pac | HYPE | look=CALIFORNIA LOVE, color=#ffb703, sky=GOLDEN
+Still D.R.E. | Dr. Dre | HYPE | look=STILL DRE, color=#adb5bd
+No Role Modelz | J. Cole | HYPE | look=NO ROLE MODELS, color=#caf0f8
+Middle Child | J. Cole | HYPE
+Mask Off | Future | DARK | look=MASK OFF, color=#9d4edd, sky=NIGHT
+Mo Bamba | Sheck Wes | HYPE | look=MO BAMBA, color=#ff006e
+XO Tour Llif3 | Lil Uzi Vert | DARK | look=XO TOUR LIFE, color=#ff2e63, sky=BLOOD
+Just Wanna Rock | Lil Uzi Vert | HYPE | look=JUST WANNA ROCK, color=#00f5d4
+Sky | Playboi Carti | HYPE | look=WHOLE LOTTA RED, color=#ff0000, sky=BLOOD
+Magnolia | Playboi Carti | HYPE | look=MAGNOLIA, color=#ff99c8
+Evil J0rdan | Playboi Carti | HYPE | look=MUSIC, color=#d00000
+Am I Dreaming | Metro Boomin | SAD | look=SPIDER-VERSE, color=#ff2e63, sky=NIGHT
+Annihilate | Metro Boomin | HYPE | look=ANNIHILATE, color=#4361ee, sky=NIGHT
+Creepin' | Metro Boomin | DARK | look=CREEPIN, color=#7209b7, sky=NIGHT
+Superhero (Heroes & Villains) | Metro Boomin | HYPE | look=HEROES AND VILLAINS, color=#ff0054, sky=STORM
+Praise The Lord (Da Shine) | A$AP Rocky | HYPE | look=PRAISE THE LORD, color=#ffd60a
+Lucid Dreams | Juice WRLD | SAD | look=LUCID DREAMS, color=#c77dff, sky=DREAM
+All Girls Are The Same | Juice WRLD | SAD | look=999, color=#7b2cbf
+Robbery | Juice WRLD | SAD | look=999, color=#9d4edd
+Wishing Well | Juice WRLD | SAD | look=WISHING WELL, color=#48cae4, sky=OCEAN
+Save That Shit | Lil Peep | SAD | look=COME OVER WHEN YOU'RE SOBER, color=#ffafcc, weather=TEARS
+Star Shopping | Lil Peep | SAD | look=STAR SHOPPING, color=#bde0fe, sky=NIGHT, weather=NIGHT
+Jocelyn Flores | XXXTENTACION | SAD | look=17, color=#adb5bd, sky=RAIN
+SAD! | XXXTENTACION | SAD | look=?, color=#ffd60a
+Moonlight | XXXTENTACION | SAD | look=MOONLIGHT, color=#90e0ef, sky=NIGHT
+Changes | XXXTENTACION | SAD | look=CHANGES, color=#caf0f8, sky=RAIN
+Look At Me! | XXXTENTACION | HYPE
+rockstar | Post Malone | DARK | look=ROCKSTAR, color=#e5e5e5
+Circles | Post Malone | SAD | look=CIRCLES, color=#ffb703, sky=GOLDEN
+Congratulations | Post Malone | HYPE | look=CONGRATULATIONS, color=#ffd60a
+Better Now | Post Malone | SAD | look=BETTER NOW, color=#a2d2ff
+Sunflower - Spider-Man: Into the Spider-Verse | Post Malone | POP | look=SPIDER-VERSE, color=#ffd60a, sky=GOLDEN
+I Had Some Help | Post Malone | POP
+Timeless | The Weeknd | HYPE | look=TIMELESS, color=#ff0000
+Popular | The Weeknd | DARK | look=THE IDOL, color=#ff006e, sky=NIGHT
+Big Guy | Ice Spice | POP
+See You Again | Tyler, The Creator | LOVE | look=FLOWER BOY, color=#ffd60a, sky=GOLDEN, weather=FLOWER
+EARFQUAKE | Tyler, The Creator | LOVE | look=IGOR, color=#ff99c8
+Self Control | Frank Ocean | SAD | look=BLONDE, color=#fefae0, font=SERIF_ITALIC, sky=GOLDEN
+Pink + White | Frank Ocean | LOVE | look=BLONDE, color=#ffc8dd, sky=DREAM
+Ivy | Frank Ocean | SAD | look=BLONDE, color=#caffbf
+Nights | Frank Ocean | SAD | look=NIGHTS, color=#90e0ef, sky=NIGHT
+Lost | Frank Ocean | LOVE | look=CHANNEL ORANGE, color=#ff9e00, sky=GOLDEN
+Thinkin Bout You | Frank Ocean | LOVE | look=THINKIN BOUT YOU, color=#ffb703
+Chanel | Frank Ocean | LOVE | look=CHANEL, color=#ffffff, font=SERIF_ITALIC
+Can't Hold Us | Macklemore & Ryan Lewis | HYPE
+Paint The Town Red | Doja Cat | DARK | look=PAINT THE TOWN RED, color=#d00000, sky=BLOOD
+Say So | Doja Cat | POP | look=SAY SO, color=#ffafcc
+Woman | Doja Cat | POP
+Kiss Me More | Doja Cat | POP | sky=DREAM
+
+# --- The Weeknd
+Blinding Lights | The Weeknd | RETRO | look=AFTER HOURS, color=#ff1744, sky=NIGHT
+Save Your Tears | The Weeknd | RETRO | look=SAVE YOUR TEARS, color=#ff4d6d
+Out of Time | The Weeknd | RETRO | look=DAWN FM, color=#ff8fab, sky=GOLDEN
+The Hills | The Weeknd | DARK | look=THE HILLS, color=#ff0000, sky=BLOOD
+Starboy | The Weeknd | DARK | look=STARBOY, color=#ff1744, sky=NIGHT
+Often | The Weeknd | DARK | look=OFTEN, color=#7b2cbf
+After Hours | The Weeknd | DARK | look=AFTER HOURS, color=#d00000, sky=NIGHT
+Is There Someone Else? | The Weeknd | SAD | look=DAWN FM, color=#ffb3c6
+Die For You | The Weeknd | SAD | look=STARBOY, color=#ff4d6d, sky=NIGHT
+Call Out My Name | The Weeknd | SAD | look=MY DEAR MELANCHOLY, color=#c77dff, sky=RAIN
+One Of The Girls | The Weeknd | DARK | look=THE IDOL, color=#ff006e
+
+# --- pop
+Espresso | Sabrina Carpenter | POP | look=THAT'S THAT ME ESPRESSO, color=#c08552, sky=GOLDEN
+Please Please Please | Sabrina Carpenter | POP | look=PLEASE PLEASE PLEASE, color=#ff4d6d
+Taste | Sabrina Carpenter | POP | look=TASTE, color=#ff99c8
+Manchild | Sabrina Carpenter | POP | look=MANCHILD, color=#ffd60a
+Tears | Sabrina Carpenter | POP | look=TEARS, color=#ff7096, weather=TEARS
+Juno | Sabrina Carpenter | LOVE
+Bed Chem | Sabrina Carpenter | LOVE | sky=DREAM
+Feather | Sabrina Carpenter | POP | look=FEATHER, color=#ffc8dd
+Good Luck, Babe! | Chappell Roan | POP | look=GOOD LUCK BABE, color=#ff4d6d
+HOT TO GO! | Chappell Roan | POP | look=HOT TO GO, color=#ff006e
+Pink Pony Club | Chappell Roan | POP | look=PINK PONY CLUB, color=#ff8fc7, sky=DREAM
+Casual | Chappell Roan | SAD
+Femininomenon | Chappell Roan | POP | look=FEMININOMENON, color=#f72585
+The Giver | Chappell Roan | POP | look=THE GIVER, color=#e9c46a, sky=GOLDEN
+The Subway | Chappell Roan | SAD | look=THE SUBWAY, color=#ff8fab, sky=RAIN
+drivers license | Olivia Rodrigo | SAD | look=DRIVERS LICENSE, color=#c77dff, sky=NIGHT
+traitor | Olivia Rodrigo | SAD | look=TRAITOR, color=#9d4edd, sky=RAIN
+good 4 u | Olivia Rodrigo | HYPE | look=GOOD 4 U, color=#ff0054
+vampire | Olivia Rodrigo | DARK | look=VAMPIRE, color=#d00000, sky=NIGHT
+get him back! | Olivia Rodrigo | POP
+APT. | ROSÉ | POP | look=APATEU, color=#ff4d6d
+Die With A Smile | Lady Gaga | LOVE | look=DIE WITH A SMILE, color=#ff8fab, font=SCRIPT, sky=GOLDEN
+Abracadabra | Lady Gaga | DARK | look=MAYHEM, color=#d00000, sky=BLOOD
+Bloody Mary | Lady Gaga | DARK | look=WEDNESDAY, color=#9d0208, font=SERIF_BOLD, sky=STORM
+Poker Face | Lady Gaga | RETRO | look=POKER FACE, color=#00f5d4
+Bad Romance | Lady Gaga | DARK | look=BAD ROMANCE, color=#ff006e
+24K Magic | Bruno Mars | POP | look=24K MAGIC, color=#ffd700
+Locked out of Heaven | Bruno Mars | POP | look=LOCKED OUT OF HEAVEN, color=#ffd166, sky=DREAM
+Talking to the Moon | Bruno Mars | SAD | look=TALKING TO THE MOON, color=#caf0f8, sky=NIGHT, weather=NIGHT
+When I Was Your Man | Bruno Mars | SAD | sky=RAIN
+That's What I Like | Bruno Mars | POP | look=THAT'S WHAT I LIKE, color=#ff4d6d
+Beautiful Things | Benson Boone | SAD | look=BEAUTIFUL THINGS, color=#ffe5ec, sky=GOLDEN
+Slow It Down | Benson Boone | POP
+Mystical Magical | Benson Boone | POP | look=MYSTICAL MAGICAL, color=#c77dff, sky=DREAM
+Ordinary | Alex Warren | LOVE | look=ORDINARY, color=#ffd6a5, sky=GOLDEN
+back to friends | sombr | SAD | look=BACK TO FRIENDS, color=#a2d2ff, sky=RAIN
+undressed | sombr | SAD | look=UNDRESSED, color=#ffafcc
+12 to 12 | sombr | LOVE | sky=NIGHT
+That's So True | Gracie Abrams | POP | look=THAT'S SO TRUE, color=#e9c46a
+I Love You, I'm Sorry | Gracie Abrams | SAD | font=SCRIPT, color=#ffcad4
+Messy | Lola Young | SAD | look=MESSY, color=#f4a261
+Sports car | Tate McRae | DARK | look=SPORTS CAR, color=#ff0a54, sky=NIGHT
+greedy | Tate McRae | POP | look=GREEDY, color=#ff006e
+Just Keep Watching | Tate McRae | HYPE | look=F1, color=#ff1e00
+you broke me first | Tate McRae | SAD | look=YOU BROKE ME FIRST, color=#bde0fe
+Saturn | SZA | SAD | look=SATURN, color=#ffcf56, sky=NIGHT, weather=NIGHT
+Kill Bill | SZA | DARK | look=KILL BILL, color=#ffd000, sky=BLOOD
+Snooze | SZA | LOVE | look=SOS, color=#a2d2ff, sky=OCEAN
+Good Days | SZA | SAD | look=GOOD DAYS, color=#b5e48c, sky=DREAM
+Cruel Summer | Taylor Swift | POP | look=CRUEL SUMMER, color=#ff99c8, sky=GOLDEN
+Anti-Hero | Taylor Swift | POP | look=IT'S ME HI, color=#4361ee, sky=NIGHT
+The Fate of Ophelia | Taylor Swift | POP | look=THE FATE OF OPHELIA, color=#ff9e00, font=SCRIPT, sky=GOLDEN
+Love Story | Taylor Swift | LOVE | look=ROMEO, color=#ffd6a5, font=SCRIPT, sky=GOLDEN
+Blank Space | Taylor Swift | POP | look=BLANK SPACE, color=#ff4d6d
+august | Taylor Swift | LOVE | look=FOLKLORE, color=#e9edc9, font=SERIF_ITALIC, sky=GOLDEN
+cardigan | Taylor Swift | SAD | look=FOLKLORE, color=#d6ccc2, font=SERIF_ITALIC, sky=RAIN
+willow | Taylor Swift | LOVE | look=EVERMORE, color=#ccd5ae, font=SERIF_ITALIC, sky=WINTER
+Style | Taylor Swift | POP | look=1989, color=#e5e5e5
+Wildest Dreams | Taylor Swift | LOVE | look=WILDEST DREAMS, color=#ffd166, sky=GOLDEN
+Enchanted | Taylor Swift | LOVE | look=ENCHANTED, color=#cdb4db, font=SCRIPT, sky=DREAM
+Don't Blame Me | Taylor Swift | DARK | look=REPUTATION, color=#adb5bd, font=SERIF_BOLD, sky=STORM
+Fortnight | Taylor Swift | SAD | look=TORTURED POETS, color=#e5e5e5, font=SERIF_ITALIC
+Watermelon Sugar | Harry Styles | POP | look=WATERMELON SUGAR, color=#ff6b6b, sky=GOLDEN
+Sign of the Times | Harry Styles | SAD | look=SIGN OF THE TIMES, color=#bde0fe, sky=DREAM
+Adore You | Harry Styles | LOVE | look=ADORE YOU, color=#ff9f1c
+Golden | Harry Styles | LOVE | look=FINE LINE, color=#ffd60a, sky=GOLDEN
+Shape of You | Ed Sheeran | POP
+Perfect | Ed Sheeran | LOVE | look=PERFECT, color=#ffe5ec, font=SCRIPT, sky=GOLDEN
+Sapphire | Ed Sheeran | POP | look=SAPPHIRE, color=#4361ee, sky=OCEAN
+STAY | The Kid LAROI | POP
+Peaches | Justin Bieber | LOVE | sky=GOLDEN
+Ghost | Justin Bieber | SAD | look=GHOST, color=#e5e5e5, sky=NIGHT
+Daisies | Justin Bieber | LOVE | look=SWAG, color=#fff3b0, weather=FLOWER
+Levitating | Dua Lipa | POP | look=FUTURE NOSTALGIA, color=#ff70a6, sky=DREAM
+Houdini | Dua Lipa | POP | look=HOUDINI, color=#7b2cbf
+Dance The Night | Dua Lipa | POP | look=BARBIE, color=#ff69b4, sky=DREAM
+Flowers | Miley Cyrus | POP | look=FLOWERS, color=#ffd60a, weather=FLOWER
+Lose Control | Teddy Swims | SAD | look=LOSE CONTROL, color=#e76f51
+Stargazing | Myles Smith | LOVE | look=STARGAZING, color=#ffd166, sky=NIGHT, weather=NIGHT
+A Bar Song (Tipsy) | Shaboozey | POP
+golden hour | JVKE | LOVE | look=GOLDEN HOUR, color=#ffb703, font=SCRIPT, sky=GOLDEN
+this is what falling in love feels like | JVKE | LOVE | look=FALLING IN LOVE, color=#ff8fab, font=HEAVY, sky=DREAM
+Daylight | David Kushner | DARK | look=DAYLIGHT, color=#adb5bd, sky=STORM
+Until I Found You | Stephen Sanchez | LOVE | look=UNTIL I FOUND YOU, color=#ffe5b4, font=SCRIPT, sky=GOLDEN
+Dandelions | Ruth B. | LOVE | look=DANDELIONS, color=#fff3b0, weather=FLOWER
+Riptide | Vance Joy | POP | look=RIPTIDE, color=#4cc9f0, sky=OCEAN
+Unholy | Sam Smith | DARK | look=UNHOLY, color=#ff0054, sky=BLOOD
+Toxic | Britney Spears | RETRO | look=TOXIC, color=#80ffdb
+Gimme More | Britney Spears | DARK | look=IT'S BRITNEY, color=#d00000
+Murder On The Dancefloor | Sophie Ellis-Bextor | RETRO | look=SALTBURN, color=#ffd166, font=SERIF_BOLD, sky=GOLDEN
+Titanium | David Guetta | POP | look=TITANIUM, color=#c0c0c0
+Wake Me Up | Avicii | POP | look=WAKE ME UP, color=#ffbe0b, sky=GOLDEN
+Heather | Conan Gray | SAD | look=HEATHER, color=#cdb4db, sky=WINTER, weather=SNOW
+Maniac | Conan Gray | POP | look=MANIAC, color=#ff006e
+Pretty Little Baby | Connie Francis | RETRO | look=PRETTY LITTLE BABY, color=#ffc8dd, font=SCRIPT, sky=DREAM
+Gnarly | KATSEYE | POP | look=GNARLY, color=#00f5d4
+Gabriela | KATSEYE | POP | look=GABRIELA, color=#ff6f91
+
+# --- Billie Eilish
+bad guy | Billie Eilish | DARK | look=DUH, color=#c6ff00
+you should see me in a crown | Billie Eilish | DARK | look=CROWN, color=#ffd60a, sky=STORM
+bury a friend | Billie Eilish | DARK | look=BURY A FRIEND, color=#9d4edd, sky=NIGHT
+lovely | Billie Eilish | SAD | look=LOVELY, color=#caf0f8, sky=RAIN, weather=TEARS
+BIRDS OF A FEATHER | Billie Eilish | LOVE | look=BIRDS OF A FEATHER, color=#48cae4, sky=OCEAN
+WILDFLOWER | Billie Eilish | SAD | look=WILDFLOWER, color=#e9edc9, weather=FLOWER
+LUNCH | Billie Eilish | POP | look=LUNCH, color=#ff4d6d
+CHIHIRO | Billie Eilish | DARK | look=CHIHIRO, color=#4361ee, sky=OCEAN
+What Was I Made For? | Billie Eilish | SAD | look=WHAT WAS I MADE FOR, color=#ffc8dd, font=SERIF_ITALIC, sky=DREAM
+Happier Than Ever | Billie Eilish | SAD | look=HAPPIER THAN EVER, color=#ffe066, sky=STORM
+ocean eyes | Billie Eilish | LOVE | look=OCEAN EYES, color=#90e0ef, sky=OCEAN
+everything i wanted | Billie Eilish | SAD | look=EVERYTHING I WANTED, color=#a2d2ff, sky=OCEAN
+when the party's over | Billie Eilish | SAD | look=WHEN THE PARTY'S OVER, color=#e5e5e5, sky=NIGHT
+
+# --- indie / sad edits
+Sweater Weather | The Neighbourhood | SAD | look=SWEATER WEATHER, color=#d6d6d6, sky=WINTER, weather=SNOW
+Daddy Issues | The Neighbourhood | SAD | look=WIPED OUT, color=#adb5bd
+Softcore | The Neighbourhood | DARK | look=SOFTCORE, color=#ced4da, sky=NIGHT
+Reflections | The Neighbourhood | SAD | look=REFLECTIONS, color=#a0c4ff, sky=NIGHT
+Another Love | Tom Odell | SAD | look=ANOTHER LOVE, color=#e5e5e5, sky=RAIN
+Heathens | Twenty One Pilots | DARK | look=HEATHENS, color=#7cff4f, sky=STORM
+Stressed Out | Twenty One Pilots | SAD | look=STRESSED OUT, color=#ff4d4d
+Ride | Twenty One Pilots | SAD | look=RIDE, color=#ffd60a
+Do I Wanna Know? | Arctic Monkeys | DARK | look=AM, color=#ffffff, font=SERIF_BOLD, sky=NIGHT
+I Wanna Be Yours | Arctic Monkeys | LOVE | look=I WANNA BE YOURS, color=#ff8fab, sky=NIGHT
+505 | Arctic Monkeys | SAD | look=505, color=#e63946, sky=NIGHT
+R U Mine? | Arctic Monkeys | HYPE | look=R U MINE, color=#ffd60a
+Why'd You Only Call Me When You're High? | Arctic Monkeys | DARK | look=AM, color=#80ffdb, sky=NIGHT
+Fluorescent Adolescent | Arctic Monkeys | POP
+Little Dark Age | MGMT | DARK | look=LITTLE DARK AGE, color=#9d4edd, sky=STORM
+Kids | MGMT | RETRO | look=KIDS, color=#ffd166, sky=DREAM
+Electric Feel | MGMT | RETRO | look=ELECTRIC FEEL, color=#00f5d4
+Fix You | Coldplay | SAD | look=FIX YOU, color=#ffd166, sky=GOLDEN
+Viva La Vida | Coldplay | POP | look=VIVA LA VIDA, color=#ffbe0b, font=SERIF_BOLD, sky=STORM
+Yellow | Coldplay | LOVE | look=YELLOW, color=#ffea00, sky=NIGHT, weather=NIGHT
+The Scientist | Coldplay | SAD | look=THE SCIENTIST, color=#bde0fe, sky=RAIN
+Sparks | Coldplay | LOVE | look=SPARKS, color=#ffd60a, sky=NIGHT
+Somebody That I Used To Know | Gotye | SAD
+Let Her Go | Passenger | SAD | sky=RAIN
+Someone You Loved | Lewis Capaldi | SAD | sky=RAIN
+Before You Go | Lewis Capaldi | SAD
+Heat Waves | Glass Animals | SAD | look=HEAT WAVES, color=#ff9e00, sky=GOLDEN
+End of Beginning | Djo | SAD | look=CHICAGO, color=#ffd166, sky=GOLDEN
+Line Without a Hook | Ricky Montgomery | SAD | look=LINE WITHOUT A HOOK, color=#a2d2ff
+Mr Loverman | Ricky Montgomery | SAD | look=MR LOVERMAN, color=#ff8fab
+Washing Machine Heart | Mitski | SAD | look=WASHING MACHINE HEART, color=#ffafcc
+My Love Mine All Mine | Mitski | LOVE | look=MY LOVE MINE ALL MINE, color=#fff3b0, font=SCRIPT, sky=NIGHT, weather=NIGHT
+Apocalypse | Cigarettes After Sex | LOVE | look=APOCALYPSE, color=#e5e5e5, font=SERIF_ITALIC, sky=NIGHT
+K. | Cigarettes After Sex | LOVE | look=K, color=#e9ecef, font=SERIF_ITALIC, sky=WINTER, weather=SNOW
+Sunsetz | Cigarettes After Sex | LOVE | look=SUNSETZ, color=#ffb4a2, sky=GOLDEN
+Sweet | Cigarettes After Sex | LOVE | look=SWEET, color=#f8edeb, font=SERIF_ITALIC
+Nothing's Gonna Hurt You Baby | Cigarettes After Sex | LOVE | look=NOTHING'S GONNA HURT YOU, color=#dee2e6, sky=NIGHT
+Summertime Sadness | Lana Del Rey | SAD | look=SUMMERTIME SADNESS, color=#ffd6a5, font=SCRIPT, sky=GOLDEN
+Young And Beautiful | Lana Del Rey | SAD | look=GATSBY, color=#ffd700, font=SERIF_ITALIC, sky=GOLDEN
+Video Games | Lana Del Rey | SAD | look=VIDEO GAMES, color=#ffc8dd, sky=NIGHT
+West Coast | Lana Del Rey | DARK | look=WEST COAST, color=#48cae4, sky=OCEAN
+Born To Die | Lana Del Rey | DARK | look=BORN TO DIE, color=#ff4d6d, font=SERIF_BOLD, sky=STORM
+Glimpse of Us | Joji | SAD | look=GLIMPSE OF US, color=#e5e5e5, sky=RAIN
+SLOW DANCING IN THE DARK | Joji | SAD | look=SLOW DANCING IN THE DARK, color=#adb5bd, sky=NIGHT
+Die For You | Joji | SAD | look=SMITHEREENS, color=#e5e5e5
+Take Me to Church | Hozier | DARK | look=TAKE ME TO CHURCH, color=#ced4da, font=SERIF_BOLD, sky=STORM
+Too Sweet | Hozier | LOVE | look=TOO SWEET, color=#ffb703
+Work Song | Hozier | LOVE | font=SERIF_ITALIC
+Mount Everest | Labrinth | DARK | look=MOUNT EVEREST, color=#e5e5e5, sky=WINTER
+Jealous | Labrinth | SAD | sky=RAIN
+Where Is My Mind? | Pixies | DARK | look=FIGHT CLUB, color=#ff4d6d, sky=NIGHT
+Creep | Radiohead | SAD | look=CREEP, color=#adb5bd, sky=RAIN
+No Surprises | Radiohead | SAD | look=NO SURPRISES, color=#caf0f8
+
+# --- rock / anthems
+Mr. Brightside | The Killers | HYPE | look=MR BRIGHTSIDE, color=#ffd60a
+Believer | Imagine Dragons | HYPE | look=BELIEVER, color=#ff3b30, sky=STORM
+Enemy | Imagine Dragons | HYPE | look=ARCANE, color=#ff006e, sky=NIGHT
+Thunder | Imagine Dragons | POP | look=THUNDER, color=#ffd60a, sky=STORM
+Bones | Imagine Dragons | HYPE | look=BONES, color=#e5e5e5, sky=STORM
+Demons | Imagine Dragons | DARK | look=DEMONS, color=#9d4edd, sky=NIGHT
+Radioactive | Imagine Dragons | HYPE | look=RADIOACTIVE, color=#9ef01a, sky=STORM
+Natural | Imagine Dragons | HYPE | look=NATURAL, color=#ffb703, sky=STORM
+Warriors | Imagine Dragons | HYPE | look=WARRIORS, color=#ff0054, sky=BLOOD
+Legends Never Die | Against The Current | HYPE | look=LEGENDS NEVER DIE, color=#ffd60a, font=SERIF_BOLD, sky=STORM
+Rise | League of Legends | HYPE | look=RISE, color=#4cc9f0, sky=STORM
+Centuries | Fall Out Boy | HYPE | look=CENTURIES, color=#ffd166, font=SERIF_BOLD
+Seven Nation Army | The White Stripes | HYPE | look=SEVEN NATION ARMY, color=#ff0000, sky=BLOOD
+Bring Me To Life | Evanescence | DARK | look=WAKE ME UP INSIDE, color=#e5e5e5, sky=STORM
+In the End | Linkin Park | DARK | look=IN THE END, color=#ff3b30, sky=STORM
+Numb | Linkin Park | DARK | look=NUMB, color=#adb5bd, sky=RAIN
+Faint | Linkin Park | HYPE | look=FAINT, color=#ff006e
+Breaking the Habit | Linkin Park | DARK | look=BREAKING THE HABIT, color=#4361ee
+Crawling | Linkin Park | DARK | look=CRAWLING, color=#ced4da, sky=STORM
+The Emptiness Machine | Linkin Park | HYPE | look=FROM ZERO, color=#ff0054
+Monster | Skillet | DARK | look=MONSTER, color=#ff0000, sky=BLOOD
+Hero | Skillet | HYPE | look=HERO, color=#ffd60a
+Animal I Have Become | Three Days Grace | DARK | look=ANIMAL I HAVE BECOME, color=#ff4d00, sky=STORM
+Smells Like Teen Spirit | Nirvana | HYPE | look=TEEN SPIRIT, color=#ffd60a
+Everlong | Foo Fighters | HYPE | look=EVERLONG, color=#4cc9f0
+Counting Stars | OneRepublic | POP | look=COUNTING STARS, color=#ffd166, sky=NIGHT, weather=NIGHT
+I Ain't Worried | OneRepublic | POP | look=TOP GUN, color=#ffb703, sky=GOLDEN
+Hall of Fame | The Script | HYPE | look=HALL OF FAME, color=#ffd700
+Unstoppable | Sia | HYPE | look=UNSTOPPABLE, color=#ff006e
+
+# --- retro classics people edit to
+Everybody Wants To Rule The World | Tears For Fears | RETRO | look=RULE THE WORLD, color=#4cc9f0
+Running Up That Hill (A Deal With God) | Kate Bush | RETRO | look=VECNA, color=#ff1744, sky=BLOOD
+Take On Me | a-ha | RETRO | look=TAKE ON ME, color=#adb5bd, font=MONO
+Sweet Dreams (Are Made of This) | Eurythmics | RETRO | look=SWEET DREAMS, color=#ff4d6d, sky=DREAM
+Never Gonna Give You Up | Rick Astley | RETRO | look=GOT YOU, color=#ffd60a
+Bohemian Rhapsody | Queen | RETRO | look=BOHEMIAN RHAPSODY, color=#ffd166, font=SERIF_BOLD, sky=STORM
+Don't Stop Me Now | Queen | POP | look=DON'T STOP ME NOW, color=#ffbe0b
+Another One Bites The Dust | Queen | HYPE
+Stayin' Alive | Bee Gees | RETRO | look=STAYIN' ALIVE, color=#ff9e00, sky=GOLDEN
+September | Earth, Wind & Fire | RETRO | look=21ST NIGHT OF SEPTEMBER, color=#ff9f1c, sky=GOLDEN
+Dancing Queen | ABBA | RETRO | look=DANCING QUEEN, color=#c77dff, sky=DREAM
+Gimme! Gimme! Gimme! (A Man After Midnight) | ABBA | RETRO | look=AFTER MIDNIGHT, color=#ff70a6, sky=NIGHT
+Tainted Love | Soft Cell | RETRO | look=TAINTED LOVE, color=#ff0054
+Mr. Blue Sky | Electric Light Orchestra | RETRO | look=MR BLUE SKY, color=#4cc9f0, sky=OCEAN
+Dreams | Fleetwood Mac | RETRO | look=DREAMS, color=#ffd6a5, sky=DREAM
+The Chain | Fleetwood Mac | DARK | look=THE CHAIN, color=#adb5bd
+Here Comes The Sun | The Beatles | RETRO | look=HERE COMES THE SUN, color=#ffd60a, sky=GOLDEN
+Wonderwall | Oasis | RETRO | look=WONDERWALL, color=#e9c46a
+Thriller | Michael Jackson | DARK | look=THRILLER, color=#ff0000, sky=NIGHT
+Billie Jean | Michael Jackson | RETRO | look=BILLIE JEAN, color=#e5e5e5
+Smooth Criminal | Michael Jackson | HYPE | look=SMOOTH CRIMINAL, color=#ffffff, font=SERIF_BOLD
+Beat It | Michael Jackson | HYPE | look=BEAT IT, color=#ff0000
+Rasputin | Boney M. | RETRO | look=RA RA RASPUTIN, color=#ffd60a
+Blue (Da Ba Dee) | Eiffel 65 | RETRO | look=I'M BLUE, color=#4361ee, sky=OCEAN
+Teenage Dirtbag | Wheatus | RETRO | look=TEENAGE DIRTBAG, color=#ff4d6d
+
+# --- K-pop / Latin
+Golden | HUNTR/X | POP | look=KPOP DEMON HUNTERS, color=#ffd700, sky=GOLDEN
+Soda Pop | Saja Boys | POP | look=SAJA BOYS, color=#ff4d8d
+Your Idol | Saja Boys | DARK | look=YOUR IDOL, color=#d00000, sky=BLOOD
+Cupid - Twin Ver. | FIFTY FIFTY | LOVE | look=CUPID, color=#ffb3c6, sky=DREAM
+Hype Boy | NewJeans | POP | look=HYPE BOY, color=#a2d2ff
+Super Shy | NewJeans | POP | look=SUPER SHY, color=#bde0fe
+How Sweet | NewJeans | POP
+Ditto | NewJeans | SAD | look=DITTO, color=#e5e5e5, sky=WINTER, weather=SNOW
+OMG | NewJeans | POP
+Seven | Jung Kook | POP
+Dynamite | BTS | POP | look=DYNAMITE, color=#ffd166
+Butter | BTS | POP
+Spring Day | BTS | SAD | look=SPRING DAY, color=#ffc8dd, weather=FLOWER
+Pink Venom | BLACKPINK | HYPE | look=PINK VENOM, color=#ff1493
+How You Like That | BLACKPINK | HYPE | look=HOW YOU LIKE THAT, color=#ff1493
+Shut Down | BLACKPINK | HYPE | look=SHUT DOWN, color=#ff1493
+DDU-DU DDU-DU | BLACKPINK | HYPE | look=DDU-DU DDU-DU, color=#ff1493
+Supernova | aespa | HYPE | look=SUPERNOVA, color=#7b2cbf, sky=NIGHT
+Whiplash | aespa | HYPE | look=WHIPLASH, color=#c0c0c0
+Magnetic | ILLIT | POP | look=MAGNETIC, color=#ffafcc
+ANTIFRAGILE | LE SSERAFIM | HYPE | look=ANTIFRAGILE, color=#ff4d6d
+Easy | LE SSERAFIM | POP
+LALISA | LISA | HYPE | look=LALISA, color=#ffd700
+MONEY | LISA | HYPE | look=MONEY, color=#ffd700
+Rockstar | LISA | HYPE | look=ROCKSTAR, color=#ff0054
+God's Menu | Stray Kids | HYPE | look=GOD'S MENU, color=#ff4d00
+S-Class | Stray Kids | HYPE | look=S-CLASS, color=#ffd60a
+LOVE DIVE | IVE | POP | look=LOVE DIVE, color=#c77dff, sky=OCEAN
+After LIKE | IVE | POP
+Gata Only | FloyyMenor | HYPE | look=GATA ONLY, color=#ff006e
+DÁKITI | Bad Bunny | DARK | look=DÁKITI, color=#4cc9f0, sky=OCEAN
+Tití Me Preguntó | Bad Bunny | POP | look=UN VERANO SIN TI, color=#ffd166, sky=GOLDEN
+Me Porto Bonito | Bad Bunny | POP | look=UN VERANO SIN TI, color=#ff70a6
+Ojitos Lindos | Bad Bunny | LOVE | look=OJITOS LINDOS, color=#ffafcc, sky=GOLDEN
+Perro Negro | Bad Bunny | HYPE
+DtMF | Bad Bunny | SAD | look=DEBÍ TIRAR MÁS FOTOS, color=#e9c46a, sky=GOLDEN
+BAILE INoLVIDABLE | Bad Bunny | LOVE | look=BAILE INOLVIDABLE, color=#ff4d6d
+MONACO | Bad Bunny | HYPE | look=MONACO, color=#ff0000
+Despacito | Luis Fonsi | POP | sky=GOLDEN
+La Bachata | Manuel Turizo | LOVE | sky=GOLDEN
+TQG | KAROL G | HYPE | look=TQG, color=#4cc9f0
+Provenza | KAROL G | POP | look=PROVENZA, color=#80ffdb, sky=OCEAN
+LALA | Myke Towers | POP
+Let The World Burn | Chris Grey | DARK | look=LET THE WORLD BURN, color=#ff5a1f, sky=BLOOD, weather=FIRE
+Waiting For Love | Avicii | HYPE | look=WAITING FOR LOVE, color=#ffd27a, font=PIXEL, sky=GOLDEN
+Like That | Doja Cat | POP | look=LIKE THAT, color=#b9a6ff

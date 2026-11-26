@@ -16,10 +16,13 @@ public final class Config {
 	public enum Position { ABOVE_HOTBAR, TOP_CENTER, LEFT_SIDE, RIGHT_SIDE, CUSTOM }
 
 	/** How the lyrics are shown. */
-	public enum Style { CLASSIC, ECHOES, SKY, ORBIT, POP, NEON, WAVE }
+	public enum Style { CLASSIC, ECHOES, EDIT, SKY, ORBIT, POP, NEON, WAVE }
 
 	/** Screen + world effects that react to the song. */
 	public enum Vibe { OFF, SUBTLE, FULL }
+
+	/** Edit style camera angles: none, only on the chorus, or a cut on every line and every chorus word. */
+	public enum Cinematic { OFF, CALM, FULL }
 
 	/** Decorative overlay. */
 	public enum Overlay { NONE, VINYL, CASSETTE, VHS, SYNTHWAVE, VISUALIZER, RAIN, STARS, OSCILLOSCOPE, CONFETTI }
@@ -79,6 +82,21 @@ public final class Config {
 	public boolean shareEchoes = true;
 	/** Show other players' Echoes panels where they placed them. */
 	public boolean showOthersEchoes = true;
+	/** Edit style: popular songs hit harder and get their own particles. */
+	public boolean editEffects = true;
+	/** Edit style: zoom punches and camera shake on the hits. */
+	public boolean editCamera = true;
+	/** Old on/off switch for the angles (before the Cinematic setting); only read to carry it over. */
+	public boolean editAngles = true;
+	/** Edit style: cinematic angles around you while you stand still. Null = not picked yet (from editAngles). */
+	public Cinematic editCinematic = null;
+	/** Edit style: keywords change the sky (night, sunset, storm...), on your screen only. */
+	public boolean editScenes = true;
+	/** The Cinematic setting (Full unless angles were switched off before it existed). */
+	public Cinematic cinematic() {
+		return editCinematic != null ? editCinematic : editAngles ? Cinematic.FULL : Cinematic.OFF;
+	}
+
 	/** Address of the online service (your own Cloudflare Worker, see server/README.md). */
 	public String onlineServer = "https://lyricraft.lyricraft-server.workers.dev";
 	/** Keep the playback clock locked to Spotify by measuring and correcting drift. */

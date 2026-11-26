@@ -162,8 +162,30 @@ public final class LyricraftScreen extends Screen implements LyricraftUi {
 			add(styleChip(s, cx0 + (i % 2) * (half + 4), y + (i / 2) * 22, half));
 			i++;
 		}
+		y += ((i + 1) / 2) * 22 + 4;
+		toggle(cx0, y, cw, "Edit: camera moves", () -> cfg().editCamera, v -> cfg().editCamera = v,
+				"In the Edit style, the camera zoom-punches and shakes a little on the beat. Turn it off if it makes you dizzy.");
+		y += 22;
+		Config.Cinematic[] cine = Config.Cinematic.values();
+		add(new Widgets.Choice(cx0, y, cw, "Edit: cinematic", () -> switch (cfg().cinematic()) {
+			case OFF -> "Off";
+			case CALM -> "Calm";
+			case FULL -> "Full";
+		}, () -> cfg().cinematic() == Config.Cinematic.OFF ? 0x8A8A96 : 0xFFFFFF, d -> {
+			cfg().editCinematic = cine[Math.floorMod(cfg().cinematic().ordinal() + d, cine.length)];
+			cfg().editAngles = cfg().editCinematic != Config.Cinematic.OFF;
+			cfg().save();
+		}, "In the Edit style, the view cuts to camera angles around you, with black bars and the words on screen. "
+				+ "Calm: only on the chorus, gentle shots. Full: a new angle every line and a cut on every chorus word. "
+				+ "Only while you stand still; move and it cuts straight back."));
+		y += 22;
+		toggle(cx0, y, cw, "Edit: sky follows the words", () -> cfg().editScenes, v -> cfg().editScenes = v,
+				"In the Edit style, words like night, sun, storm, rain or heaven change the sky for a few seconds: starry night, golden sunset, a storm... Only on your screen, and the world stays as bright as it was.");
+		y += 22;
+		toggle(cx0, y, cw, "Edit: popular songs hit harder", () -> cfg().editEffects, v -> cfg().editEffects = v,
+				"In the Edit style, " + dev.lyricraft.hud.style.EditSongs.size() + " popular songs get stronger hits and particles that fit them: hearts, rain, sparks, soul flames, notes.");
 		info = "";
-		return y + ((i + 1) / 2) * 22;
+		return y + 22;
 	}
 
 	private Widgets.Chip styleChip(Config.Style s, int x, int y, int w) {
@@ -702,6 +724,7 @@ public final class LyricraftScreen extends Screen implements LyricraftUi {
 			case SKY -> "Giant lyrics written across the sky. Switches to Classic in caves and buildings.";
 			case ORBIT -> "Words spin in a ring around you and pop as they're sung.";
 			case ECHOES -> "Every line appears where you look and stays there in the world, leaving a trail of lyrics. Lines never stack on top of each other.";
+			case EDIT -> "Like a video edit: every line is stamped onto whatever you look at, the words slam onto the wall or ground one by one and kick up its dust, and the camera punches in on the beat. Trees and mobs can pass in front of the words.";
 			case POP -> "Words appear one by one with a bouncy pop. Can be dragged.";
 			case NEON -> "Flickering neon-sign lyrics. Can be dragged.";
 			case WAVE -> "Letters ride a wave that moves with the song. Can be dragged.";

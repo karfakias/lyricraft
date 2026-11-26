@@ -25,7 +25,41 @@ public final class LyricraftClientGameTest implements FabricClientGameTest {
 
 	@Override
 	public void runTest(ClientGameTestContext ctx) {
-		if ("1".equals(System.getenv("LYRICRAFT_GALLERY")) || "1".equals(System.getenv("LYRICRAFT_PERF"))) return; // gallery/benchmark run only
+		if ("1".equals(System.getenv("LYRICRAFT_GALLERY")) || "1".equals(System.getenv("LYRICRAFT_PERF"))
+				|| "1".equals(System.getenv("LYRICRAFT_EDITS")) || "1".equals(System.getenv("LYRICRAFT_LANGS"))) return; // gallery/benchmark run only
+
+		// ---------------------------------------------------------- cinematic setting carries over the old switch
+		{
+			Config fresh = new Config();
+			check(fresh.cinematic() == Config.Cinematic.FULL, "cinematic is Full by default");
+			fresh.editAngles = false;
+			check(fresh.cinematic() == Config.Cinematic.OFF, "angles switched off before stays off");
+			fresh.editCinematic = Config.Cinematic.CALM;
+			check(fresh.cinematic() == Config.Cinematic.CALM, "the cinematic choice wins once it's picked");
+		}
+
+		// ---------------------------------------------------------- popular songs list matches real Spotify titles
+		{
+			var S = dev.lyricraft.hud.style.EditSongs.Style.class;
+			log("edit songs on the list: " + dev.lyricraft.hud.style.EditSongs.size());
+			check(dev.lyricraft.hud.style.EditSongs.size() > 150, "the popular songs list loads");
+			check(edit("expectations", "Olivia Rodrigo, Chappell Roan") == dev.lyricraft.hud.style.EditSongs.Style.POP, "matches with several artists");
+			check(edit("Die With A Smile", "Lady Gaga, Bruno Mars") == dev.lyricraft.hud.style.EditSongs.Style.LOVE, "a title with 'with' in it still matches");
+			check(edit("Swimming Pools (Drank) - Extended Version", "Kendrick Lamar") == dev.lyricraft.hud.style.EditSongs.Style.DARK, "versions and brackets are ignored");
+			check(edit("Sunflower - Spider-Man: Into the Spider-Verse", "Post Malone, Swae Lee") == dev.lyricraft.hud.style.EditSongs.Style.POP, "a subtitle after a dash is ignored");
+			check(edit("SI NO ESTÁS", "iñigo quintero") == dev.lyricraft.hud.style.EditSongs.Style.SAD, "accents and capitals don't matter");
+			check(edit("Die For You", "Joji") == dev.lyricraft.hud.style.EditSongs.Style.SAD && edit("Die For You", "The Weeknd") == dev.lyricraft.hud.style.EditSongs.Style.SAD,
+					"same title, different artists");
+			check(edit("Changes", "2Pac") == null, "a song with the same title by someone else doesn't match");
+			check(edit("Glass Harbor", "The Late Signals") == null, "songs that aren't on the list get no edit effects");
+			check(S != null, "styles exist");
+			var night = dev.lyricraft.hud.style.EditSongs.profile("Nightcall", "Kavinsky");
+			check(night != null && "NIGHTCALL".equals(night.look()) && night.sky() != null && "MONO".equals(night.font()),
+					"a song gets its own look: slide name, sky and font");
+			check(edit("Legends Never Die", "League of Legends, Against The Current") == dev.lyricraft.hud.style.EditSongs.Style.HYPE,
+					"the artist can be further down the list on Spotify");
+			check(dev.lyricraft.hud.style.EditSongs.size() > 380, "the bigger list loads (" + dev.lyricraft.hud.style.EditSongs.size() + ")");
+		}
 		try (TestSingleplayerContext world = ctx.worldBuilder().create()) {
 			world.getConnection().waitForChunksRender();
 			Config cfg = LyricraftClient.get().config;
@@ -388,6 +422,10 @@ public final class LyricraftClientGameTest implements FabricClientGameTest {
 		var w = mc.getWindow();
 		return new double[]{gx * (double) w.getScreenWidth() / w.getGuiScaledWidth(),
 				gy * (double) w.getScreenHeight() / w.getGuiScaledHeight()};
+	}
+
+	private static dev.lyricraft.hud.style.EditSongs.Style edit(String title, String artist) {
+		return dev.lyricraft.hud.style.EditSongs.find(title, artist);
 	}
 
 	private static void check(boolean ok, String what) {

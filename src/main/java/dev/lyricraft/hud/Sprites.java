@@ -26,6 +26,10 @@ public final class Sprites {
 	public static final class Tex extends DynamicTexture {
 		final Identifier id;
 		final int w, h;
+
+		public Identifier id() {
+			return id;
+		}
 		final boolean repeat;
 
 		Tex(String name, NativeImage img, boolean repeat) {
