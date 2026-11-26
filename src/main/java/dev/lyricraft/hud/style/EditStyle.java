@@ -76,6 +76,7 @@ public final class EditStyle implements LyricStyle {
 		int key = -1;                 // the word that gets the coloured bar (the longest word on a chorus line)
 		WorldKeywords.Kind[] kinds;   // words that do something to the world (fire, rain, storm...)
 		WordArt.Glyph[] art;          // words drawn with a real font (null = the pixel font)
+		float[] at;                   // when each word lands, as a fraction of the line
 		Line parent;                  // a chorus word that flew to where you were looking: its line
 		boolean crumbled;             // already burst into dust
 
@@ -195,7 +196,7 @@ public final class EditStyle implements LyricStyle {
 		Lyrics.Line first = f.line(0);
 		if (!introShown && track != null && first != null && first.startMs() - f.posMs() > 2500 && slot <= 0) {
 			introShown = true;
-			Line intro = place(f, -1, track.title().toUpperCase(Locale.ROOT), false, false);
+			Line intro = place(f, -1, WordArt.upper(track.title()), false, false);
 			if (intro != null) {
 				for (int i = 0; i < intro.words.length; i++) intro.landedAt[i] = clock + i * 0.12f;
 				lines.add(intro);
@@ -251,8 +252,9 @@ public final class EditStyle implements LyricStyle {
 			if (line == null || f.posMs() < line.startMs()) continue;
 			float progress = active == l.index ? line.progress(f.posMs()) : (f.posMs() >= line.endMs() ? 1f : 0f);
 			List<Lyrics.Word> ws = line.words();
-			for (int i = 0; i < Math.min(ws.size(), l.words.length); i++) {
-				if (l.landedAt[i] != -1f || progress < ws.get(i).start()) continue;
+			for (int i = 0; i < l.words.length; i++) {
+				float start = l.at != null ? l.at[i] : i < ws.size() ? ws.get(i).start() : 1f;
+				if (l.landedAt[i] != -1f || progress < start) continue;
 				// on the chorus, if you've looked somewhere else, the word lands where you're looking now
 				if (l.chorus && i > 0 && lookedAway(mc, l)) {
 					Line w = place(f, -2, l.words[i], true, false);
@@ -361,8 +363,8 @@ public final class EditStyle implements LyricStyle {
 		// rows of a few words each, like captions in an edit
 		Font font = f.font();
 		// the chorus is shouted: capitals, like the lyric edits do
-		String shown = ch && index >= 0 ? text.toUpperCase(Locale.ROOT) : text;
-		String[] words = shown.trim().split("\\s+");
+		String shown = ch && index >= 0 ? WordArt.upper(text) : text;
+		String[] words = splitWords(shown);
 		// fonts, like the edits: one look per kind of song; other songs keep the pixel font but
 		// the key word of a chorus line (the longest) gets an elegant serif, mixing fonts like they do
 		int keyWord = -1;
@@ -373,7 +375,9 @@ public final class EditStyle implements LyricStyle {
 		WordArt.Face face = faceFor(index);
 		WordArt.Glyph[] art = new WordArt.Glyph[words.length];
 		for (int i = 0; i < words.length; i++) {
-			WordArt.Face wf = face != null ? face : i == keyWord ? WordArt.Face.SERIF_ITALIC : null;
+			// Arabic, Hebrew, Hindi, Thai...: the pixel font can't join or stack those letters, so always a real font
+			WordArt.Face wf = face != null ? face : i == keyWord ? WordArt.Face.SERIF_ITALIC
+					: WordArt.needsRealFont(words[i]) ? WordArt.Face.HEAVY : null;
 			if (wf == null) continue;
 			art[i] = WordArt.get(wf, words[i]);
 			if (art[i] != null) words[i] = WordArt.shown(wf, words[i]);
@@ -401,10 +405,12 @@ public final class EditStyle implements LyricStyle {
 		rowW.add(x);
 		int rows = rowW.size();
 		float[] wx = new float[words.length], wy = new float[words.length];
+		boolean rtl = WordArt.rightToLeft(shown);
 		float width = 1f;
 		for (float w : rowW) width = Math.max(width, w);
 		for (int i = 0; i < words.length; i++) {
 			wx[i] = left[i] - rowW.get(row[i]) / 2f + ww[i] / 2f;
+			if (rtl) wx[i] = -wx[i]; // Arabic, Hebrew: the first word goes on the right
 			wy[i] = (row[i] - (rows - 1) / 2f) * rowH;
 		}
 		float height = rows * rowH;
@@ -412,6 +418,8 @@ public final class EditStyle implements LyricStyle {
 		float scale = (float) Math.max(0.02, dist * 0.022) * (ch ? 1.2f : 1f) * (drop ? 1.15f : 1f);
 		float maxW = (float) Math.max(2.5, dist * (surface ? 1.05 : 0.7));
 		scale = Math.min(scale, maxW / width);
+		// and never taller than about half of what you can see there (long lines wrap to 3-4 rows)
+		scale = Math.min(scale, (float) (dist * (surface ? 0.62 : 0.5)) / Math.max(1f, height + 4f));
 		// keep the letters out of the ground: low on a wall, a step or a slope on the floor, a hill in
 		// front of a line in the air... walls and air: nudge the line up (down under a ceiling) until
 		// it's clear. Floor: slide it back towards you first so it stays flat on the ground, then make
@@ -439,6 +447,7 @@ public final class EditStyle implements LyricStyle {
 		}
 		Line line = new Line(index, text, anchor, right, up, normal, surface, block, scale, words, wx, wy, ww, width, height, ch, drop, clock);
 		line.art = art;
+		line.at = startsOf(words);
 		line.kinds = new WorldKeywords.Kind[words.length];
 		for (int i = 0; i < words.length; i++) line.kinds[i] = WorldKeywords.find(words[i]);
 		if (ch && index >= 0 && words.length > 1) {
@@ -490,6 +499,86 @@ public final class EditStyle implements LyricStyle {
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * The line's words. Chinese, Japanese and Thai don't put spaces between words, so a whole
+	 * line would be one huge "word": those runs get cut into short chunks (a few characters, at
+	 * word breaks where Java knows them) so they land one after another like everything else.
+	 */
+	static String[] splitWords(String text) {
+		List<String> out = new ArrayList<>();
+		for (String token : text.trim().split("\\s+")) {
+			if (token.isEmpty()) continue;
+			if (token.codePointCount(0, token.length()) <= 4 || !unspaced(token)) {
+				out.add(token);
+				continue;
+			}
+			// Java only knows where Thai words end when asked in Thai
+			java.text.BreakIterator it = java.text.BreakIterator.getWordInstance(thaiLike(token) ? Locale.of("th") : Locale.ROOT);
+			it.setText(token);
+			StringBuilder chunk = new StringBuilder();
+			List<String> pieces = new ArrayList<>();
+			for (int a = it.first(), b = it.next(); b != java.text.BreakIterator.DONE; a = b, b = it.next()) {
+				String piece = token.substring(a, b);
+				// Java doesn't know where Chinese or Thai words end, so a long run comes back whole:
+				// cut it every few characters (whole characters, so Thai marks stay on their letter)
+				if (piece.codePointCount(0, piece.length()) <= (thaiLike(piece) ? 10 : 4)) {
+					pieces.add(piece);
+					continue;
+				}
+				java.text.BreakIterator chars = java.text.BreakIterator.getCharacterInstance(Locale.ROOT);
+				chars.setText(piece);
+				int size = thaiLike(piece) ? 5 : 3, count = 0, from = 0;
+				for (int c = chars.next(); c != java.text.BreakIterator.DONE; c = chars.next()) {
+					if (++count == size) {
+						pieces.add(piece.substring(from, c));
+						from = c;
+						count = 0;
+					}
+				}
+				if (from < piece.length()) pieces.add(piece.substring(from));
+			}
+			for (String piece : pieces) {
+				boolean letters = piece.codePoints().anyMatch(Character::isLetterOrDigit);
+				// punctuation sticks to the chunk before it; otherwise start a new chunk past ~4 characters
+				if (letters && chunk.length() > 0 && chunk.codePointCount(0, chunk.length()) + piece.codePointCount(0, piece.length()) > (thaiLike(piece) ? 7 : 4)) {
+					out.add(chunk.toString());
+					chunk.setLength(0);
+				}
+				chunk.append(piece);
+			}
+			if (chunk.length() > 0) out.add(chunk.toString());
+		}
+		if (out.isEmpty()) out.add(text.trim());
+		return out.toArray(String[]::new);
+	}
+
+	private static boolean thaiLike(String s) {
+		return s.codePoints().anyMatch(cp -> switch (Character.UnicodeScript.of(cp)) {
+			case THAI, LAO, KHMER, MYANMAR -> true;
+			default -> false;
+		});
+	}
+
+	private static boolean unspaced(String token) {
+		return token.codePoints().anyMatch(cp -> switch (Character.UnicodeScript.of(cp)) {
+			case HAN, HIRAGANA, KATAKANA, THAI, LAO, KHMER, MYANMAR -> true;
+			default -> false;
+		});
+	}
+
+	/** Where each word starts as a fraction of the line, by its place in the text (like the lyrics do). */
+	static float[] startsOf(String[] words) {
+		int total = 0;
+		for (String w : words) total += w.length();
+		float[] at = new float[words.length];
+		int seen = 0;
+		for (int i = 0; i < words.length; i++) {
+			at[i] = seen / (float) Math.max(1, total);
+			seen += words[i].length();
+		}
+		return at;
 	}
 
 	/** A word hits: dust off the block, the song's particles, and a little camera kick on the chorus. */

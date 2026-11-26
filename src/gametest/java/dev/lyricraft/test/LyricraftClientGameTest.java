@@ -26,7 +26,7 @@ public final class LyricraftClientGameTest implements FabricClientGameTest {
 	@Override
 	public void runTest(ClientGameTestContext ctx) {
 		if ("1".equals(System.getenv("LYRICRAFT_GALLERY")) || "1".equals(System.getenv("LYRICRAFT_PERF"))
-				|| "1".equals(System.getenv("LYRICRAFT_EDITS"))) return; // gallery/benchmark run only
+				|| "1".equals(System.getenv("LYRICRAFT_EDITS")) || "1".equals(System.getenv("LYRICRAFT_LANGS"))) return; // gallery/benchmark run only
 
 		// ---------------------------------------------------------- popular songs list matches real Spotify titles
 		{
